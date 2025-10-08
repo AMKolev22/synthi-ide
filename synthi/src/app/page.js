@@ -168,7 +168,7 @@ export default function Home() {
       </div>
 
       <div 
-        className="fixed right-8 z-50 transition-all duration-300 ease-out"
+        className="fixed right-4 z-50 transition-all duration-300 ease-out"
         style={{ 
           top: `${Math.min(scrollProgress * 0.8 + 10, 85)}%`,
           opacity: scrollProgress > 5 ? 1 : 0
