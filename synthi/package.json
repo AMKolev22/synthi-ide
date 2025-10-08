@@ -1,22 +1,20 @@
 {
-  "name": "example-with-tailwindcss",
-  "type": "module",
+  "name": "synthi",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "dev": "vinxi dev",
-    "build": "vinxi build",
-    "start": "vinxi start"
+    "dev": "next dev --turbopack",
+    "build": "next build --turbopack",
+    "start": "next start"
   },
   "dependencies": {
-    "@solidjs/router": "^0.15.0",
-    "@solidjs/start": "^1.1.0",
-    "solid-js": "^1.9.5",
-    "vinxi": "^0.5.7"
+    "lucide-react": "^0.545.0",
+    "next": "15.5.4",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.0.7",
-    "tailwindcss": "^4.0.7"
-  },
-  "engines": {
-    "node": ">=22"
+    "@tailwindcss/postcss": "^4",
+    "tailwindcss": "^4"
   }
 }
