@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Rocket } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -9,6 +10,8 @@ export default function Home() {
   const [typewriterText, setTypewriterText] = useState('');
   const [showSecondLine, setShowSecondLine] = useState(false);
   const [secondLineText, setSecondLineText] = useState('');
+  const [waitlistCount, setWaitlistCount] = useState(0);
+  const [email, setEmail] = useState('');
   const featuresRef = useRef(null);
 
   const firstLine = "An IDE that truly";
@@ -70,6 +73,53 @@ export default function Home() {
 
   const scrollToBottom = () => {
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+  };
+
+  const fetchWaitlistCount = async () => {
+    try {
+      const response = await fetch('/api/waitlist');
+      const data = await response.json();
+      setWaitlistCount(data.count || 0);
+    } catch (error) {
+      console.error('Failed to fetch waitlist count:', error);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+  
+    if (!email || !email.trim()) {
+      toast.error('Please enter a valid email');
+      return;
+    }
+  
+    const fetchPromise = fetch('/api/waitlist', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email: email.trim() }),
+    }).then(async (response) => {
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to join waitlist');
+      }
+      return data;
+    });
+  
+    toast.promise(fetchPromise, {
+      loading: 'Joining waitlist...',
+      success: (data) => {
+        if (data.message === 'Email already on waitlist') {
+          return 'You\'re already on the waitlist!';
+        }
+        setEmail('');
+        fetchWaitlistCount(); // Refresh count
+        return 'Successfully joined the waitlist 🎉';
+      },
+      error: (error) => {
+        return error.message || 'Something went wrong. Please try again.';
+      },
+    });
   };
 
   return (
@@ -146,7 +196,7 @@ export default function Home() {
 
       <div className="relative z-10 flex flex-col items-start justify-center min-h-screen px-32">
         <div 
-          className={`flex items-center gap-2 mb-6 transition-all duration-1000 ml-2 ${
+          className={`flex items-center gap-2 mb-2 transition-all duration-1000 ml-2 ${
             mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
           }`}
           style={{ transitionDelay: '0ms' }}
@@ -266,24 +316,21 @@ export default function Home() {
                   type="email"
                   placeholder="Enter your email"
                   className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#E5E5E5]/20 rounded-lg text-[#E5E5E5] placeholder-[#AFAFAF] focus:outline-none focus:border-[#58A4B0] transition-colors duration-300"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
                 
-                <button className="w-full group relative px-8 py-4 bg-white text-black font-semibold rounded-lg overflow-hidden transition-all duration-300 hover:-translate-y-1">
+                <button onClick={() => handleSubmit(email)} className="w-full group relative px-8 py-4 bg-white text-black font-semibold rounded-lg overflow-hidden transition-all duration-300 hover:-translate-y-1">
                   <span className="relative z-10 font-mono text-sm tracking-wide">JOIN THE WAITLIST</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-[#E5E5E5] to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </button>
               </div>
 
               <div className="flex items-center gap-2 text-[#AFAFAF] text-sm pt-2">
-                <div className="flex -space-x-2">
-                  {[...Array(3)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-8 h-8 rounded-full bg-gradient-to-br from-[#58A4B0] to-[#0C7C59] border-2 border-[#1a1a1a]"
-                    />
-                  ))}
+                <div className='w-2 h-2 bg-emerald-400 animate-pulse rounded-lg'>
+                  
                 </div>
-                <span>Join <strong className="text-[#E5E5E5]">2,847</strong> developers already on the list.</span>
+                <span>Join <strong className="text-[#E5E5E5]">{waitlistCount}</strong> developers already on the list.</span>
               </div>
             </div>
           </div>
