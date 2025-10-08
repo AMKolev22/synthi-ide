@@ -203,7 +203,7 @@ export default function Home() {
         ref={featuresRef}
         className="relative z-10 min-h-screen flex items-center justify-center px-20 py-32"
       >
-        <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+        <div className="max-w-7xl w-full grid grid-cols-1 md:grid-cols-2 gap-24 items-center">
           <div className="space-y-6">
             <h2 
               className={`text-5xl font-bold text-[#E5E5E5] tracking-tight transition-all duration-1000 ${
@@ -212,7 +212,7 @@ export default function Home() {
             >
               Code <span className='text-[#327464] underline'>Beyond Hardware</span>,
               <br />
-              <span className='inline-block mt-2'>Build at Instant.</span>
+              <span className='inline-block mt-2'>Build at <span>Instant</span>.</span>
             </h2>
             
             <p className={`text-[#AFAFAF] text-lg leading-relaxed transition-all duration-1000 delay-200 ${
@@ -221,7 +221,7 @@ export default function Home() {
             Your code, accelerated. With AI that understands context, predicts errors, and offers intelligent suggestions, building and delivering software has never been faster.
             </p>
 
-            <div className="space-y-4 pt-4">
+            <div className="space-y-4 pt-2">
               {[
                 { title: 'Bugs Fixed Before You Notice Them.', desc: 'Synthi scans every file in real time, detecting errors, offering intelligent suggestions, and guiding you to cleaner, smarter code, so you can focus on building, not debugging. ' },
                 { title: 'Code Without Hardware Limits.', desc: 'Compile massive projects entirely in the cloud. Instant delivery, seamless performance - just like running locally, but infinitely scalable.' },
@@ -254,7 +254,7 @@ export default function Home() {
             <div className="relative bg-[#1a1a1a] border border-[#E5E5E5]/10 rounded-2xl p-10 space-y-6">
               <div className="space-y-2">
                 <h3 className="text-3xl font-bold text-[#E5E5E5] tracking-tight">
-                  Be the first experience.
+                  Be the first to experience.
                 </h3>
                 <p className="text-[#AFAFAF]">
                   Join now so you can early access to Synthi when it releases.
