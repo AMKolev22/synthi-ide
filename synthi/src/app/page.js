@@ -19,7 +19,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-
+    fetchWaitlistCount();
     // Typewriter effect for first line
     let i = 0;
     const firstLineInterval = setInterval(() => {
