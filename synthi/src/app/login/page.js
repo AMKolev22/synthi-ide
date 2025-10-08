@@ -3,8 +3,29 @@
 import { signIn } from 'next-auth/react'; 
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub } from 'react-icons/fa';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const {data: session, status } = useSession();
+  const router = useRouter();
+  if (status === 'loading') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-4">
+        <p className="text-xl text-gray-600">Loading session data...</p>
+      </div>
+    );
+  }
+  useEffect(() => {
+    if (session) {
+      router.push('/');
+    }
+  }, [session, router]);
+
+  if (session) {
+    return <p>Redirecting...</p>; 
+  }
+
   const handleGoogleSignIn = () => signIn('google');
   const handleGitHubSignIn = () => signIn('github');
 
