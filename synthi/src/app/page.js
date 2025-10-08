@@ -257,7 +257,7 @@ export default function Home() {
                   Be the first to experience.
                 </h3>
                 <p className="text-[#AFAFAF]">
-                  Join now so you can early access to Synthi when it releases.
+                  Join now so you get early access to Synthi when it releases.
                 </p>
               </div>
 
