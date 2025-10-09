@@ -1,81 +1,90 @@
 'use client';
 import Editor from '@monaco-editor/react';
-import { useEffect, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState, useCallback } from 'react';
+import TopNav from '../TopNav.jsx';
+import dynamic from 'next/dynamic';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Folder as LFolderIcon, FolderIcon, Folder, FolderOpen, FileText, FileCode2, FileJson, FileType } from 'lucide-react';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 
 const deepCloneFiles = (files) => {
   return JSON.parse(JSON.stringify(files));
 };
 
-// const INITIAL_FILES_DATA = [
-//   { name: 'src', type: 'folder', children: [
-//     { name: 'components', type: 'folder', children: [
-//       { name: 'Header.js', type: 'file', language: 'javascript', content: "function Header() {\n  return <h1>Site Header</h1>;\n}" },
-//       { name: 'Footer.js', type: 'file', language: 'javascript', content: "const Footer = () => <footer>© 2025</footer>;\nexport default Footer;" },
-//     ]},
-//     { name: 'pages', type: 'folder', children: [
-//       { name: 'index.js', type: 'file', language: 'javascript', content: "console.log('Welcome to the Synthi project.');" },
-//       { name: 'about.js', type: 'file', language: 'javascript', content: "/* About page is currently empty */" },
-//     ]},
-//     { name: 'styles.css', type: 'file', language: 'css', content: "body { background-color: #1e1e1e; color: #fff; }" },
-//     { name: 'auth.js', type: 'file', language: 'javascript', content: "/* Auth logic goes here */" },
-//   ]},
-//   { name: 'public', type: 'folder', children: [
-//     { name: 'favicon.ico', type: 'file', language: 'plaintext', content: "Binary content..." },
-//     { name: 'logo.png', type: 'file', language: 'plaintext', content: "Binary content..." },
-//   ]},
-//   { name: 'package.json', type: 'file', language: 'json', content: '{\n  "name": "Synthi",\n  "version": "1.0.0"\n}' },
-//   { name: 'README.md', type: 'file', language: 'markdown', content: '# Synthi\n\nCloud AI IDE' },
-// ];
 
 const INITIAL_FILES_DATA = [
-  { name: 'src', type: 'folder', children: [
-    { name: 'main.cpp', type: 'file', language: 'cpp', content: 
-      "#include \"core/Logger.h\"\n\n" +
-      "int main() {\n" +
-      "    Logger::log(\"Application started.\");\n" +
-      "    // Main application logic here\n" +
-      "    Logger::log(\"Application finished successfully.\");\n" +
-      "    return 0;\n" +
-      "}" 
-    },
-    { name: 'utility.cpp', type: 'file', language: 'cpp', content: 
-      "#include \"../include/utility.h\"\n\n" +
-      "int add(int a, int b) {\n" +
-      "    return a + b;\n" +
-      "}" 
-    },
-  ]},
-  { name: 'include', type: 'folder', children: [
-    { name: 'utility.h', type: 'file', language: 'cpp', content: 
-      "#pragma once\n\n" +
-      "int add(int a, int b);\n" 
-    },
-    { name: 'core', type: 'folder', children: [
-      { name: 'Logger.h', type: 'file', language: 'cpp', content: 
-        "#pragma once\n#include <iostream>\n\n" +
-        "class Logger {\n" +
-        "public:\n" +
-        "    static void log(const std::string& message) {\n" +
-        "        std::cout << \"[LOG] \" << message << std::endl;\n" +
-        "    }\n" +
-        "};\n" 
-      }
-    ]}
-  ]},
-  { name: 'build', type: 'folder', children: [
-    { name: '.gitkeep', type: 'file', language: 'plaintext', content: "Placeholder for build output" }
-  ]},
-  { name: 'CMakeLists.txt', type: 'file', language: 'cmake', content: 
-    "cmake_minimum_required(VERSION 3.10)\n" +
-    "project(SimpleCppProject)\n\n" +
-    "set(CMAKE_CXX_STANDARD 17)\n\n" +
-    "include_directories(include)\n\n" +
-    "add_executable(app src/main.cpp src/utility.cpp)\n" 
+  {
+    name: 'src', type: 'folder', children: [
+      {
+        name: 'main.cpp', type: 'file', language: 'cpp', content:
+          "#include \"core/Logger.h\"\n\n" +
+          "int main() {\n" +
+          "    Logger::log(\"Application started.\");\n" +
+          "    // Main application logic here\n" +
+          "    Logger::log(\"Application finished successfully.\");\n" +
+          "    return 0;\n" +
+          "}"
+      },
+      {
+        name: 'utility.cpp', type: 'file', language: 'cpp', content:
+          "#include \"../include/utility.h\"\n\n" +
+          "int add(int a, int b) {\n" +
+          "    return a + b;\n" +
+          "}"
+      },
+    ]
   },
-  { name: 'README.md', type: 'file', language: 'markdown', content: 
-    "# Simple C++ Project\n\n" +
-    "A basic C++ project structure using CMake.\n" 
+  {
+    name: 'include', type: 'folder', children: [
+      {
+        name: 'utility.h', type: 'file', language: 'cpp', content:
+          "#pragma once\n\n" +
+          "int add(int a, int b);\n"
+      },
+      {
+        name: 'core', type: 'folder', children: [
+          {
+            name: 'Logger.h', type: 'file', language: 'cpp', content:
+              "#pragma once\n#include <iostream>\n\n" +
+              "class Logger {\n" +
+              "public:\n" +
+              "    static void log(const std::string& message) {\n" +
+              "        std::cout << \"[LOG] \" << message << std::endl;\n" +
+              "    }\n" +
+              "};\n"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    name: 'build', type: 'folder', children: [
+      { name: '.gitkeep', type: 'file', language: 'plaintext', content: "Placeholder for build output" }
+    ]
+  },
+  {
+    name: 'CMakeLists.txt', type: 'file', language: 'cmake', content:
+      "cmake_minimum_required(VERSION 3.10)\n" +
+      "project(SimpleCppProject)\n\n" +
+      "set(CMAKE_CXX_STANDARD 17)\n\n" +
+      "include_directories(include)\n\n" +
+      "add_executable(app src/main.cpp src/utility.cpp)\n"
+  },
+  {
+    name: 'README.md', type: 'file', language: 'markdown', content:
+      "# Simple C++ Project\n\n" +
+      "A basic C++ project structure using CMake.\n"
   }
 ];
 
@@ -91,21 +100,23 @@ const ChevronIcon = ({ isOpen, isSelected }) => (
   </svg>
 );
 
-const FileIcon = ({ type, isSelected }) => {
-  if (type === 'folder') return null;
-  
-  const iconMap = {
-    javascript: <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-white' : 'text-yellow-300'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm2.25 15.25c-.25 0-.5-.12-.75-.37l-1.5-1.5-.75.75-.75-.75-1.5 1.5c-.25.25-.5.37-.75.37s-.5-.12-.75-.37c-.5-.5-.5-1.25 0-1.75l1.5-1.5-1.5-1.5c-.5-.5-.5-1.25 0-1.75.5-.5 1.25-.5 1.75 0l1.5 1.5 1.5-1.5c.5-.5 1.25-.5 1.75 0s.5 1.25 0 1.75L15.5 14l1.5 1.5c.5.5.5 1.25 0 1.75-.25.25-.5.37-.75.37z"/></svg>,
-    css: <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-white' : 'text-blue-400'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 16H8.5c-.55 0-1-.45-1-1v-2h2c.55 0 1-.45 1-1V9c0-.55-.45-1-1-1h-2V7h3c.55 0 1-.45 1-1V5c0-.55-.45-1-1-1H7.5c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1h2v1c0 .55-.45 1-1 1h-2v2h3c.55 0 1 .45 1 1v2c0 .55-.45 1-1 1z"/></svg>,
-    json: <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-white' : 'text-green-400'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-4H8V8h3V4h2v4h3v4h-3v4z"/></svg>,
-    markdown: <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-white' : 'text-blue-300'}`} fill="currentColor" viewBox="0 0 24 24"><path d="M16 18H8V6h8v12zm0-2h-2v-2h2v2zm0-4h-2V8h2v4zM22 6v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2z"/></svg>,
-    default: <svg className={`w-4 h-4 mr-2 ${isSelected ? 'text-white' : 'text-gray-300'}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0-3a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0-3a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0-3a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0-3a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"></path></svg>
-  };
-
-  return iconMap[type] || iconMap.default;
+const FileIcon = ({ node, isSelected }) => {
+  if (node.type === 'folder') {
+    return node.__open ? (
+      <FolderOpen className={`w-4 h-4 mr-2 ${isSelected ? 'text-gray-100' : 'text-gray-300'}`} />
+    ) : (
+      <FolderIcon className={`w-4 h-4 mr-2 ${isSelected ? 'text-gray-100' : 'text-gray-300'}`} />
+    );
+  }
+  const name = node.name.toLowerCase();
+  if (name.endsWith('.json')) return <FileJson className={`w-4 h-4 mr-2 ${isSelected ? 'text-green-300' : 'text-green-400'}`} />;
+  if (name.endsWith('.md')) return <FileText className={`w-4 h-4 mr-2 ${isSelected ? 'text-blue-300' : 'text-blue-400'}`} />;
+  if (name.endsWith('.js') || name.endsWith('.ts') || name.endsWith('.tsx')) return <FileCode2 className={`w-4 h-4 mr-2 ${isSelected ? 'text-yellow-200' : 'text-yellow-300'}`} />;
+  if (name.endsWith('.cpp') || name.endsWith('.h') || name.endsWith('.hpp')) return <FileType className={`w-4 h-4 mr-2 ${isSelected ? 'text-cyan-200' : 'text-cyan-300'}`} />;
+  return <FileText className={`w-4 h-4 mr-2 ${isSelected ? 'text-gray-200' : 'text-gray-400'}`} />;
 };
 
-const FileItem = ({ item, level = 0, onFileSelect, activeFile }) => {
+const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
   const [isOpen, setIsOpen] = useState(false);
   const paddingStyle = { paddingLeft: `${level * 16 + 16}px` };
 
@@ -114,6 +125,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile }) => {
   const handleClick = () => {
     if (item.type === 'folder') {
       setIsOpen(!isOpen);
+      item.__open = !isOpen;
     } else {
       onFileSelect(item);
     }
@@ -125,9 +137,10 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile }) => {
         className={`flex items-center py-1 px-2 cursor-pointer transition duration-200 rounded-sm ${isSelected ? 'bg-gray-600 text-white' : 'hover:bg-gray-700'}`}
         style={paddingStyle}
         onClick={handleClick}
+        data-node-name={item.name}
       >
         {item.type === 'folder' && <ChevronIcon isOpen={isOpen} isSelected={isSelected} />}
-        <FileIcon type={item.type === 'folder' ? 'folder' : item.language} isSelected={isSelected} />
+        <FileIcon node={item} isSelected={isSelected} />
         <span className={`text-sm truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}>{item.name}</span>
       </div>
       {item.type === 'folder' && isOpen && item.children && (
@@ -139,6 +152,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile }) => {
               level={level + 1}
               onFileSelect={onFileSelect}
               activeFile={activeFile}
+              onAction={onAction}
             />
           ))}
         </div>
@@ -147,25 +161,97 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile }) => {
   );
 };
 
-const FileTreeView = ({ files, onFileSelect, activeFile }) => (
-  <div className="w-full h-full bg-gray-800 text-white flex flex-col overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-    <div className="px-3 py-2 flex items-center justify-between border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
-      <div className="flex items-center">
-        <span className="text-sm text-gray-200">Project</span>
-      </div>
-    </div>
-    <div className="flex-grow">
-      {files.map((item, index) => (
-        <FileItem key={index} item={item} onFileSelect={onFileSelect} activeFile={activeFile} />
-      ))}
-    </div>
-  </div>
-);
+const FileTreeView = ({ files, onFileSelect, activeFile, onAction }) => {
+  const [contextTarget, setContextTarget] = useState(null);
+  const findNodeByName = (nodes, name) => {
+    const stack = [...nodes];
+    while (stack.length) {
+      const n = stack.shift();
+      if (n.name === name) return n;
+      if (n.type === 'folder' && n.children) stack.push(...n.children);
+    }
+    return null;
+  };
+
+  const onOpenMenu = (e) => {
+    const el = e?.target?.closest('[data-node-name]');
+    if (el) {
+      const name = el.getAttribute('data-node-name');
+      setContextTarget(findNodeByName(files, name));
+    } else {
+      setContextTarget(null);
+    }
+  };
+
+  return (
+    <ContextMenu onOpenAutoFocus={onOpenMenu} onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
+      <ContextMenuTrigger asChild>
+        <div className="w-full h-full bg-gray-800 text-white flex flex-col overflow-y-auto">
+          <div className="px-3 py-2 flex items-center justify-between border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
+            <div className="flex items-center">
+              <span className="text-sm text-gray-200">Project</span>
+            </div>
+          </div>
+          <div className="flex-grow">
+            {files.map((item, index) => (
+              <FileItem key={index} item={item} onFileSelect={onFileSelect} activeFile={activeFile} onAction={onAction} />
+            ))}
+          </div>
+        </div>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="w-48">
+        {contextTarget ? (
+          contextTarget.type === 'folder' ? (
+            <>
+              <ContextMenuItem onClick={() => onAction('new-file', contextTarget)}>New File</ContextMenuItem>
+              <ContextMenuItem onClick={() => onAction('new-folder', contextTarget)}>New Folder</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onAction('rename', contextTarget)}>Rename</ContextMenuItem>
+              <ContextMenuItem onClick={() => onAction('delete', contextTarget)}>Delete</ContextMenuItem>
+            </>
+          ) : (
+            <>
+              <ContextMenuItem onClick={() => onAction('open', contextTarget)}>Open</ContextMenuItem>
+              <ContextMenuItem onClick={() => onAction('reveal-in-tree', contextTarget)}>Reveal in Tree</ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={() => onAction('rename', contextTarget)}>Rename</ContextMenuItem>
+              <ContextMenuItem onClick={() => onAction('delete', contextTarget)}>Delete</ContextMenuItem>
+            </>
+          )
+        ) : (
+          <>
+            <ContextMenuItem onClick={() => onAction('new-file-root', null)}>New File</ContextMenuItem>
+            <ContextMenuItem onClick={() => onAction('new-folder-root', null)}>New Folder</ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
+};
 
 export default function EditorPage() {
   const [files, setFiles] = useState(deepCloneFiles(INITIAL_FILES_DATA));
   const [activeFile, setActiveFile] = useState(null);
   const [code, setCode] = useState('');
+  const [title, setTitle] = useState('Synthi Workspace');
+  const [breadcrumb, setBreadcrumb] = useState([]);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const TerminalPane = dynamic(() => import('../TerminalPane.jsx'), { ssr: false });
+  const TerminalManagerDyn = dynamic(() => import('../TerminalManager.jsx'), { ssr: false });
+
+  const findPathToTarget = useCallback((nodes, target, path = []) => {
+    for (const node of nodes) {
+      const currentPath = [...path, node];
+      if (node.type === 'file' && node.name === target.name && node.language === target.language) {
+        return currentPath;
+      }
+      if (node.type === 'folder' && node.children) {
+        const result = findPathToTarget(node.children, target, currentPath);
+        if (result) return result;
+      }
+    }
+    return null;
+  }, []);
 
   const handleFileSelect = (file) => {
     if (activeFile) {
@@ -175,6 +261,9 @@ export default function EditorPage() {
 
     setActiveFile(file);
     setCode(file.content || '');
+    setTitle(file.name);
+    const pathArr = findPathToTarget(files, file) || [];
+    setBreadcrumb(pathArr);
   };
 
   const handleCodeChange = (newCode) => {
@@ -186,8 +275,10 @@ export default function EditorPage() {
       const defaultFile = files[0]?.children?.[0]?.children?.[0] || files[0];
       setActiveFile(defaultFile);
       setCode(defaultFile?.content || '');
+      const pathArr = defaultFile ? (Array.isArray(files) ? [files[0], files[0]?.children?.[0], defaultFile].filter(Boolean) : []) : [];
+      setBreadcrumb(pathArr);
     }
-  }, [files]);
+  }, [files, activeFile]);
 
   const findFileAndUpdate = (currentFiles, targetFile, newContent) => {
     return currentFiles.map(item => {
@@ -205,55 +296,102 @@ export default function EditorPage() {
     console.log(files);
   }
 
-  return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 dark">
-      
-      <div className="flex flex-1 overflow-hidden">
-        
-        <div className="w-72 flex-shrink-0 border-r border-gray-700 h-full overflow-hidden">
-          <FileTreeView files={files} onFileSelect={handleFileSelect} activeFile={activeFile} />
-        </div>
-        
-        <div className="flex flex-col flex-grow bg-white dark:bg-gray-900 h-full">
-          
-          <div className="flex items-center justify-between border-b border-gray-700 bg-gray-800 shadow-sm">
-              <div className="px-4 py-2 text-sm font-medium text-white bg-gray-900 border-t-2 border-blue-500">
-                  {activeFile ? activeFile.name : 'No file selected'}
-              </div>
-              
-              
-              <div className="mr-3">
-                  
-                  <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="text-white border-gray-600 hover:bg-gray-700"
-                      onClick={onRun}
-                  >
-                      Run
-                  </Button>
-              </div>
-          </div>
+  const handleTreeAction = useCallback((action, target) => {
+    console.log('Tree action:', action, target);
+    // Hook up with actual file system logic later
+  }, []);
 
-          <div className="flex-1 overflow-hidden">
-            <Editor
-              key={activeFile ? activeFile.name : 'no-file'}
-              height="100%"
-              value={code}
-              language={activeFile ? activeFile.language : 'plaintext'}
-              onChange={handleCodeChange}
-              theme="vs-dark"
-              options={{
-                minimap: { enabled: true },
-                fontSize: 14,
-                wordWrap: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-              }}
-            />
-          </div>
-        </div>
-      </div>
+  return (
+    <div className="flex flex-col h-screen bg-[#1e1e1e] text-gray-200">
+      <TopNav title={title} onRun={onRun} onToggleTerminal={() => setShowTerminal(v => !v)} />
+      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+        <ResizablePanel defaultSize={24} minSize={16} maxSize={40} className="border-r border-[#2a2a2a] bg-[#252526]">
+          <FileTreeView files={files} onFileSelect={handleFileSelect} activeFile={activeFile} onAction={handleTreeAction} />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize={76} minSize={40}>
+          <ResizablePanelGroup direction="vertical" className="h-full">
+            <ResizablePanel defaultSize={70} minSize={40}>
+              <div className="h-full flex flex-col bg-[#1e1e1e]">
+                <div className="px-3 py-2 text-sm border-b border-[#2a2a2a] bg-[#252526] flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+                  {breadcrumb && breadcrumb.length > 0 ? (
+                    breadcrumb.map((node, idx) => (
+                      <span key={`${node.name}-${idx}`} className="flex items-center">
+                        {node.type === 'folder' ? <LFolderIcon className="w-3.5 h-3.5 mr-1 text-gray-400" /> : <FileText className="w-3.5 h-3.5 mr-1 text-gray-400" />}
+                        {node.type === 'folder' ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className={`text-xs ${idx === breadcrumb.length - 1 ? 'text-gray-100' : 'text-gray-300'} hover:text-gray-100`}>{node.name}</button>
+                            </PopoverTrigger>
+                            <PopoverContent className="min-w-[200px] bg-[#252526] border border-[#2a2a2a]">
+                              <div className="text-xs text-gray-300 mb-2">{node.name}</div>
+                              <div className="space-y-1">
+                                {(node.children || []).map((child, i) => (
+                                  <div key={`${child.name}-${i}`} className="flex items-center cursor-pointer hover:bg-[#2f2f2f] rounded px-2 py-1" onClick={() => child.type === 'file' ? handleFileSelect(child) : null}>
+                                    <span className="mr-2">{child.type === 'folder' ? <Folder className="w-3.5 h-3.5 text-gray-400" /> : <FileText className="w-3.5 h-3.5 text-gray-400" />}</span>
+                                    <span className="text-xs text-gray-200">{child.name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className={`text-xs ${idx === breadcrumb.length - 1 ? 'text-gray-100' : 'text-gray-400'}`}>{node.name}</span>
+                        )}
+                        {idx < breadcrumb.length - 1 && <span className="px-1 text-gray-500">›</span>}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-gray-400">No file selected</span>
+                  )}
+                </div>
+                <div className="flex-1 overflow-hidden">
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                      <div className="h-full">
+                        <Editor
+                          key={activeFile ? activeFile.name : 'no-file'}
+                          height="100%"
+                          value={code}
+                          language={activeFile ? activeFile.language : 'plaintext'}
+                          onChange={handleCodeChange}
+                          theme="vs-dark"
+                          options={{
+                            minimap: { enabled: true },
+                            fontSize: 14,
+                            wordWrap: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true,
+                            lineNumbers: true,
+                            scrollbar: {
+                              verticalHasArrows: true,
+                              horizontalHasArrows: true,
+                            }
+                          }}
+                        />
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-48">
+                      <ContextMenuItem onClick={() => onRun()}>Run File</ContextMenuItem>
+                      <ContextMenuItem onClick={() => console.log('Format document')}>Format Document</ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem onClick={() => console.log('Find in file')}>Find…</ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                </div>
+              </div>
+            </ResizablePanel>
+            {showTerminal && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30} minSize={15}>
+                  <TerminalManagerDyn visible={true} onCloseAll={() => setShowTerminal(false)} />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
