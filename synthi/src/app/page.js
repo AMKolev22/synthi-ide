@@ -338,7 +338,7 @@ export default function Home() {
       </div>
       <footer className="relative z-10 py-8 border-t border-[#E5E5E5]/10">
         <div className="px-8 text-center">
-          <p className="text-[#AFAFAF] text-sm"><span className='text-[#E5E5E5] font-semibold'>Expect soon.</span> synthi@2025</p>
+          <p className="text-[#AFAFAF] text-sm"><span className='text-[#E5E5E5] font-semibold'>Expect soon.</span> Inquiries: dev@synthi.app</p>
         </div>
       </footer>
     </div>
