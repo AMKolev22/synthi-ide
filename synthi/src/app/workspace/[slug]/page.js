@@ -1,30 +1,82 @@
 'use client';
 import Editor from '@monaco-editor/react';
 import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 
 const deepCloneFiles = (files) => {
   return JSON.parse(JSON.stringify(files));
 };
 
+// const INITIAL_FILES_DATA = [
+//   { name: 'src', type: 'folder', children: [
+//     { name: 'components', type: 'folder', children: [
+//       { name: 'Header.js', type: 'file', language: 'javascript', content: "function Header() {\n  return <h1>Site Header</h1>;\n}" },
+//       { name: 'Footer.js', type: 'file', language: 'javascript', content: "const Footer = () => <footer>© 2025</footer>;\nexport default Footer;" },
+//     ]},
+//     { name: 'pages', type: 'folder', children: [
+//       { name: 'index.js', type: 'file', language: 'javascript', content: "console.log('Welcome to the Synthi project.');" },
+//       { name: 'about.js', type: 'file', language: 'javascript', content: "/* About page is currently empty */" },
+//     ]},
+//     { name: 'styles.css', type: 'file', language: 'css', content: "body { background-color: #1e1e1e; color: #fff; }" },
+//     { name: 'auth.js', type: 'file', language: 'javascript', content: "/* Auth logic goes here */" },
+//   ]},
+//   { name: 'public', type: 'folder', children: [
+//     { name: 'favicon.ico', type: 'file', language: 'plaintext', content: "Binary content..." },
+//     { name: 'logo.png', type: 'file', language: 'plaintext', content: "Binary content..." },
+//   ]},
+//   { name: 'package.json', type: 'file', language: 'json', content: '{\n  "name": "Synthi",\n  "version": "1.0.0"\n}' },
+//   { name: 'README.md', type: 'file', language: 'markdown', content: '# Synthi\n\nCloud AI IDE' },
+// ];
+
 const INITIAL_FILES_DATA = [
   { name: 'src', type: 'folder', children: [
-    { name: 'components', type: 'folder', children: [
-      { name: 'Header.js', type: 'file', language: 'javascript', content: "function Header() {\n  return <h1>Site Header</h1>;\n}" },
-      { name: 'Footer.js', type: 'file', language: 'javascript', content: "const Footer = () => <footer>© 2025</footer>;\nexport default Footer;" },
-    ]},
-    { name: 'pages', type: 'folder', children: [
-      { name: 'index.js', type: 'file', language: 'javascript', content: "console.log('Welcome to the Synthi project.');" },
-      { name: 'about.js', type: 'file', language: 'javascript', content: "/* About page is currently empty */" },
-    ]},
-    { name: 'styles.css', type: 'file', language: 'css', content: "body { background-color: #1e1e1e; color: #fff; }" },
-    { name: 'auth.js', type: 'file', language: 'javascript', content: "/* Auth logic goes here */" },
+    { name: 'main.cpp', type: 'file', language: 'cpp', content: 
+      "#include \"core/Logger.h\"\n\n" +
+      "int main() {\n" +
+      "    Logger::log(\"Application started.\");\n" +
+      "    // Main application logic here\n" +
+      "    Logger::log(\"Application finished successfully.\");\n" +
+      "    return 0;\n" +
+      "}" 
+    },
+    { name: 'utility.cpp', type: 'file', language: 'cpp', content: 
+      "#include \"../include/utility.h\"\n\n" +
+      "int add(int a, int b) {\n" +
+      "    return a + b;\n" +
+      "}" 
+    },
   ]},
-  { name: 'public', type: 'folder', children: [
-    { name: 'favicon.ico', type: 'file', language: 'plaintext', content: "Binary content..." },
-    { name: 'logo.png', type: 'file', language: 'plaintext', content: "Binary content..." },
+  { name: 'include', type: 'folder', children: [
+    { name: 'utility.h', type: 'file', language: 'cpp', content: 
+      "#pragma once\n\n" +
+      "int add(int a, int b);\n" 
+    },
+    { name: 'core', type: 'folder', children: [
+      { name: 'Logger.h', type: 'file', language: 'cpp', content: 
+        "#pragma once\n#include <iostream>\n\n" +
+        "class Logger {\n" +
+        "public:\n" +
+        "    static void log(const std::string& message) {\n" +
+        "        std::cout << \"[LOG] \" << message << std::endl;\n" +
+        "    }\n" +
+        "};\n" 
+      }
+    ]}
   ]},
-  { name: 'package.json', type: 'file', language: 'json', content: '{\n  "name": "Synthi",\n  "version": "1.0.0"\n}' },
-  { name: 'README.md', type: 'file', language: 'markdown', content: '# Synthi\n\nCloud AI IDE' },
+  { name: 'build', type: 'folder', children: [
+    { name: '.gitkeep', type: 'file', language: 'plaintext', content: "Placeholder for build output" }
+  ]},
+  { name: 'CMakeLists.txt', type: 'file', language: 'cmake', content: 
+    "cmake_minimum_required(VERSION 3.10)\n" +
+    "project(SimpleCppProject)\n\n" +
+    "set(CMAKE_CXX_STANDARD 17)\n\n" +
+    "include_directories(include)\n\n" +
+    "add_executable(app src/main.cpp src/utility.cpp)\n" 
+  },
+  { name: 'README.md', type: 'file', language: 'markdown', content: 
+    "# Simple C++ Project\n\n" +
+    "A basic C++ project structure using CMake.\n" 
+  }
 ];
 
 const ChevronIcon = ({ isOpen, isSelected }) => (
@@ -149,8 +201,12 @@ export default function EditorPage() {
     });
   };
 
+  const onRun = () => {
+    console.log(files);
+  }
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 dark">
       
       <div className="flex flex-1 overflow-hidden">
         
@@ -160,10 +216,23 @@ export default function EditorPage() {
         
         <div className="flex flex-col flex-grow bg-white dark:bg-gray-900 h-full">
           
-          <div className="flex items-center border-b border-gray-700 bg-gray-800 shadow-sm">
-            <div className="px-4 py-2 text-sm font-medium text-white bg-gray-900 border-t-2 border-blue-500">
-              {activeFile ? activeFile.name : 'No file selected'}
-            </div>
+          <div className="flex items-center justify-between border-b border-gray-700 bg-gray-800 shadow-sm">
+              <div className="px-4 py-2 text-sm font-medium text-white bg-gray-900 border-t-2 border-blue-500">
+                  {activeFile ? activeFile.name : 'No file selected'}
+              </div>
+              
+              
+              <div className="mr-3">
+                  
+                  <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-white border-gray-600 hover:bg-gray-700"
+                      onClick={onRun}
+                  >
+                      Run
+                  </Button>
+              </div>
           </div>
 
           <div className="flex-1 overflow-hidden">
