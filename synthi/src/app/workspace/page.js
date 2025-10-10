@@ -1,7 +1,7 @@
 'use client';
 
 import Editor from '@monaco-editor/react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import TopNav from './TopNav.jsx';
 import dynamic from 'next/dynamic';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -175,7 +175,10 @@ export default function WorkspaceRootPage() {
   const [breadcrumb, setBreadcrumb] = useState([]);
   const [showTerminal, setShowTerminal] = useState(false);
   const TerminalPane = dynamic(() => import('./TerminalPane.jsx'), { ssr: false });
-  const TerminalManagerDyn = dynamic(() => import('./TerminalManager.jsx'), { ssr: false });
+  const TerminalManagerDyn = useMemo(
+    () => dynamic(() => import('./TerminalManager.jsx'), { ssr: false }),
+    []
+  );
 
   const findPathToTarget = useCallback((nodes, target, path = []) => {
     for (const node of nodes) {
