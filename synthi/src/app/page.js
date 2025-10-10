@@ -3,6 +3,37 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Star component for the background
+const Star = ({ top, left, size, delay, duration, depth }) => {
+  const [scrollY, setScrollY] = useState(0);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const parallaxOffset = scrollY * (0.5 / depth);
+  
+  return (
+    <div
+      className="absolute rounded-full bg-white"
+      style={{
+        top: `${top - parallaxOffset}px`,
+        left: `${left}%`,
+        width: `${size}px`,
+        height: `${size}px`,
+        boxShadow: `0 0 ${size * 2}px rgba(255, 255, 255, 0.8), 0 0 ${size * 4}px rgba(255, 255, 255, 0.4)`,
+        animation: `twinkle ${duration}s ${delay}s infinite`,
+        opacity: 0.9 / depth,
+      }}
+    />
+  );
+};
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -10,16 +41,34 @@ export default function Home() {
   const [typewriterText, setTypewriterText] = useState('');
   const [showSecondLine, setShowSecondLine] = useState(false);
   const [secondLineText, setSecondLineText] = useState('');
+  const [typewriterComplete, setTypewriterComplete] = useState(false);
   const [waitlistCount, setWaitlistCount] = useState(0);
   const [email, setEmail] = useState('');
+  const [stars, setStars] = useState([]);
   const featuresRef = useRef(null);
 
-  const firstLine = "An IDE that truly";
+  const firstLine = "The IDE that truly";
   const secondLine = "understands you.";
 
   useEffect(() => {
     setMounted(true);
     fetchWaitlistCount();
+    
+    // Generate random stars
+    const generatedStars = [];
+    for (let i = 0; i < 50; i++) {
+      generatedStars.push({
+        id: i,
+        top: Math.random() * window.innerHeight,
+        left: Math.random() * 100,
+        size: Math.random() * 3 + 1,
+        delay: Math.random() * 5,
+        duration: Math.random() * 3 + 2,
+        depth: Math.random() * 3 + 1, // Depth for parallax effect
+      });
+    }
+    setStars(generatedStars);
+    
     // Typewriter effect for first line
     let i = 0;
     const firstLineInterval = setInterval(() => {
@@ -44,6 +93,7 @@ export default function Home() {
           j++;
         } else {
           clearInterval(secondLineInterval);
+          setTypewriterComplete(true);
         }
       }, 50);
 
@@ -86,7 +136,6 @@ export default function Home() {
   };
 
   const handleSubmit = async (e) => {
-  
     if (!email || !email.trim()) {
       toast.error('Please enter a valid email');
       return;
@@ -113,7 +162,7 @@ export default function Home() {
           return 'You\'re already on the waitlist!';
         }
         setEmail('');
-        fetchWaitlistCount(); // Refresh count
+        fetchWaitlistCount();
         return 'Successfully joined the waitlist 🎉';
       },
       error: (error) => {
@@ -133,6 +182,17 @@ export default function Home() {
         
         .font-mono {
           font-family: 'JetBrains Mono', monospace;
+        }
+        
+        @keyframes twinkle {
+          0%, 100% { 
+            opacity: 0.2;
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 1;
+            transform: scale(1.2);
+          }
         }
         
         @keyframes scroll-bounce {
@@ -155,6 +215,15 @@ export default function Home() {
         }
         .cursor-blink {
           animation: blink 1s infinite;
+        }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        
+        .float-animation {
+          animation: float 6s ease-in-out infinite;
         }
       `}</style>
 
@@ -188,11 +257,15 @@ export default function Home() {
 
       <div className="fixed inset-0 bg-[#131112]" />
 
-      <div className="absolute inset-0 h-screen opacity-[0.03]" style={{
-        backgroundImage: `linear-gradient(rgba(229, 229, 229, 0.5) 1px, transparent 1px),
-                         linear-gradient(90deg, rgba(229, 229, 229, 0.5) 1px, transparent 1px)`,
-        backgroundSize: '40px 40px'
-      }} />
+      {/* Stars background with parallax */}
+      <div className="fixed inset-0 overflow-hidden">
+        {stars.map((star) => (
+          <Star key={star.id} {...star} />
+        ))}
+      </div>
+
+      {/* Gradient overlay for depth */}
+      <div className="fixed inset-0 bg-gradient-to-b from-transparent via-[#131112]/50 to-[#131112] pointer-events-none" />
 
       <div className="relative z-10 flex flex-col items-start justify-center min-h-screen px-32">
         <div 
@@ -211,14 +284,17 @@ export default function Home() {
         <div className="space-y-2">
           <h1 className="text-7xl font-bold text-[#E5E5E5] tracking-tight">
             {typewriterText}
-            {typewriterText.length < firstLine.length && (
+            {!showSecondLine && typewriterText.length < firstLine.length && (
               <span className="cursor-blink">|</span>
             )}
           </h1>
           {showSecondLine && (
             <h1 className="text-7xl font-bold text-[#E5E5E5] tracking-tight">
               {secondLineText}
-              {secondLineText.length < secondLine.length && (
+              {!typewriterComplete && secondLineText.length < secondLine.length && (
+                <span className="cursor-blink">|</span>
+              )}
+              {typewriterComplete && (
                 <span className="cursor-blink">|</span>
               )}
             </h1>
@@ -249,6 +325,7 @@ export default function Home() {
           </button>
         </div>
       </div>
+      
       <div 
         ref={featuresRef}
         className="relative z-10 min-h-screen flex items-center justify-center px-20 py-32"
@@ -327,15 +404,14 @@ export default function Home() {
               </div>
 
               <div className="flex items-center gap-2 text-[#AFAFAF] text-sm pt-2">
-                <div className='w-2 h-2 bg-emerald-400 animate-pulse rounded-lg'>
-                  
-                </div>
+                <div className='w-2 h-2 bg-emerald-400 animate-pulse rounded-lg'></div>
                 <span>Join <strong className="text-[#E5E5E5]">{waitlistCount}</strong> developers already on the list.</span>
               </div>
             </div>
           </div>
         </div>
       </div>
+      
       <footer className="relative z-10 py-8 border-t border-[#E5E5E5]/10">
         <div className="px-8 text-center">
           <p className="text-[#AFAFAF] text-sm"><span className='text-[#E5E5E5] font-semibold'>Expect soon.</span> Inquiries: dev@synthi.app</p>
