@@ -56,7 +56,7 @@ export default function Home() {
     
     // Generate random stars
     const generatedStars = [];
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 200; i++) {
       generatedStars.push({
         id: i,
         top: Math.random() * window.innerHeight,
