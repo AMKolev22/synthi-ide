@@ -12,6 +12,9 @@ export default function TerminalPane() {
     let fitAddon;
     let webLinksAddon;
     let dispose;
+    let prompt = ' PS C:\\> ';
+    let inputBuffer = '';
+    let promptLength = prompt.length;
 
     const init = async () => {
       const { Terminal } = await import('xterm');
@@ -35,20 +38,27 @@ export default function TerminalPane() {
 
       term.open(containerRef.current);
       fitAddon.fit();
-      term.writeln('Welcome to Synthi Terminal');
-      term.write('\r\nPS C:\\> ');
+      term.writeln(' Welcome to Synthi Terminal');
+      term.write('\r\n' + prompt);
 
+      inputBuffer = '';
       term.onData((data) => {
-        // Basic local echo and simple prompt handling
-        if (data === '\r') {
-          term.write('\r\nPS C:\\> ');
-          return;
-        }
+        // Prevent deleting the prompt
         if (data === '\u007F' || data === '\b') { // Backspace
-          // Move cursor back and clear char
-          term.write('\b \b');
+          if (inputBuffer.length > 0) {
+            inputBuffer = inputBuffer.slice(0, -1);
+            term.write('\b \b');
+          }
+          // If inputBuffer is empty, do nothing (can't delete prompt)
           return;
         }
+        if (data === '\r') {
+          term.write('\r\n' + prompt);
+          inputBuffer = '';
+          return;
+        }
+        // Only allow input after prompt
+        inputBuffer += data;
         term.write(data);
       });
 
