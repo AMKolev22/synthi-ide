@@ -7,7 +7,6 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import FileTreeView from "./FileTree.jsx"
-import { INITIAL_FILES_DATA } from './initial.js';
 import EditorPanel from "./Editor.jsx"
 
 const deepCloneFiles = (files) => {
@@ -15,7 +14,7 @@ const deepCloneFiles = (files) => {
 };
 
 export default function EditorPage() {
-  const [files, setFiles] = useState(deepCloneFiles(INITIAL_FILES_DATA));
+  const [files, setFiles] = useState([]);
   const [editorInstance, setEditorInstance] = useState(null);
   const [position, setPosition] = useState({ lineNumber: 0, column: 0 });
   const [activeFile, setActiveFile] = useState(null);
