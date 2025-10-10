@@ -1,6 +1,6 @@
 'use client';
 import Editor from '@monaco-editor/react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import TopNav from '../TopNav.jsx';
 import dynamic from 'next/dynamic';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -35,7 +35,10 @@ export default function EditorPage() {
   const [showTerminal, setShowTerminal] = useState(false);
   const [treeOnRight, setTreeOnRight] = useState(false);
   const [panelGroupKey, setPanelGroupKey] = useState(0);
-  const TerminalManagerDyn = dynamic(() => import('../TerminalManager.jsx'), { ssr: false });
+  const TerminalManagerDyn = useMemo(
+    () => dynamic(() => import('../TerminalManager.jsx'), { ssr: false }),
+    []
+  );
 
   const findPathToTarget = useCallback((nodes, target, path = []) => {
     for (const node of nodes) {
@@ -100,11 +103,12 @@ export default function EditorPage() {
 
   const toggleTreeOrientation = () => {
     setTreeOnRight(prev => !prev);
+    setPanelGroupKey(prev => prev + 1); // Force remount
   };
 
   const FileTreePanel = (
-    <ResizablePanel defaultSize={24} minSize={1} maxSize={35} className={`${treeOnRight ? 'border-l' : 'border-r'} border-[#2a2a2a] bg-[#252526]`}>
-      <FileTreeView
+    <ResizablePanel defaultSize={24} minSize={1} maxSize={35} className={`${treeOnRight ? 'border-l' : 'border-r'} border-[#545454] bg-[#252526]`}>
+      <FileTreeView 
         files={files}
         onFileSelect={handleFileSelect}
         activeFile={activeFile}
@@ -218,7 +222,11 @@ export default function EditorPage() {
   return (
     <div className="flex flex-col h-screen bg-[#1e1e1e] text-gray-200">
       <TopNav title={title} onRun={onRun} onToggleTerminal={() => setShowTerminal(v => !v)} />
-      <ResizablePanelGroup direction="horizontal" className="flex-1 min-h-0">
+      <ResizablePanelGroup
+        direction="horizontal"
+        className="flex-1 min-h-0"
+        key={panelGroupKey} // <-- Add this line
+      >
         {treeOnRight ? (
           <>
             {EditorPanel}

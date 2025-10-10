@@ -7,18 +7,18 @@ import { Play, TerminalSquare, Settings } from 'lucide-react';
 
 export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
   return (
-    <div className="w-full h-10 flex items-center justify-between border-b bg-background px-3">
+    <div className="w-full h-10 flex items-center justify-between border-b border-[#545454] bg-[#1e1e1e] px-3">
       <div className="text-sm font-medium truncate">{title}</div>
       <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={onToggleTerminal}>
+        <Button className="border-[#545454] bg-[262626] hover:bg-[#333333] hover:text-indigo-0" variant="outline" size="sm" onClick={onToggleTerminal}>
           <TerminalSquare className="w-4 h-4 mr-2" /> Terminal
         </Button>
-        <Button variant="outline" size="sm" onClick={onRun}>
+        <Button className="border-[#545454] bg-[262626] hover:bg-[#333333] hover:text-indigo-0" variant="outline" size="sm" onClick={onRun}>
           <Play className="w-4 h-4 mr-2" /> Run
         </Button>
         <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm">
+          <PopoverTrigger asChild >
+            <Button className="bg-[262626] hover:bg-[#333333] hover:text-indigo-0" variant="ghost" size="sm">
               <Settings className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
