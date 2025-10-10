@@ -59,7 +59,6 @@ export async function POST(req: NextRequest) {
         const data = await req.formData();
         const file = data.get('file') as File;
         const fileId = data.get('fileId') as string;
-
         if (!fileId) {
             return NextResponse.json({ error: 'fileId is required in the request body.' }, { status: 400 });
         }
