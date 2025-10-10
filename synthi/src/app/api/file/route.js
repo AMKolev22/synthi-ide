@@ -29,20 +29,31 @@ export async function GET(req) {
         const bucket = storage.bucket(BUCKET_NAME);
         const file = bucket.file(fileId);
 
+        // Check if file exists
+        const [exists] = await file.exists();
+        if (!exists) {
+            return NextResponse.json({ error: `File with ID ${fileId} not found.` }, { status: 404 });
+        }
+
+        // Check if this is a folder marker file
         const [metadata] = await file.getMetadata();
+        if (metadata.metadata && metadata.metadata.isFolder === 'true') {
+            return NextResponse.json({ error: 'Cannot read folder content' }, { status: 400 });
+        }
+
+        // Download file content as text
+        const [content] = await file.download();
+        const textContent = content.toString('utf8');
         
-        const fileStream = file.createReadStream();
-        
-        return new NextResponse(fileStream, { 
+        return new NextResponse(textContent, { 
             headers: {
-                'Content-Type': metadata.contentType || 'application/octet-stream',
-                'Content-Disposition': `inline; filename="${metadata.name}"`, 
+                'Content-Type': 'text/plain; charset=utf-8',
             },
         });
 
     } catch (error) {
-        console.error(error);
-        return NextResponse.json({ error: `File with ID ${fileId} not found.` }, { status: 404 });
+        console.error('Error reading file:', error);
+        return NextResponse.json({ error: `Failed to read file ${fileId}.` }, { status: 500 });
     }
 }
 

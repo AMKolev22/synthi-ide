@@ -22,18 +22,39 @@ export async function GET(req) {
         // Get all files from the bucket
         const [files] = await bucket.getFiles();
         
-        // Return just the file names and basic metadata
-        const fileList = files.map(file => ({
+        // Separate regular files and folder markers
+        const regularFiles = files.filter(file => {
+            return !(file.metadata && file.metadata.metadata && file.metadata.metadata.isFolder === 'true');
+        });
+        
+        const folderMarkers = files.filter(file => {
+            return file.metadata && file.metadata.metadata && file.metadata.metadata.isFolder === 'true';
+        });
+        
+        // Create a set of all folder paths
+        const folderPaths = new Set();
+        folderMarkers.forEach(folder => {
+            folderPaths.add(folder.name);
+        });
+        
+        // Return files and folder information
+        const fileList = regularFiles.map(file => ({
             name: file.name,
             size: file.metadata.size,
             contentType: file.metadata.contentType,
             timeCreated: file.metadata.timeCreated,
             updated: file.metadata.updated
         }));
+        
+        const folderList = Array.from(folderPaths).map(path => ({
+            name: path,
+            type: 'folder'
+        }));
 
         return NextResponse.json({ 
             success: true, 
-            files: fileList 
+            files: fileList,
+            folders: folderList
         }, { status: 200 });
 
     } catch (error) {
