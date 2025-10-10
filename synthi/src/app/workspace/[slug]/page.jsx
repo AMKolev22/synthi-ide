@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import TopNav from '../TopNav.jsx';
-import dynamic from 'next/dynamic';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -32,11 +31,6 @@ export default function EditorPage() {
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState(Date.now());
   const [lastFileCount, setLastFileCount] = useState(0);
-  const TerminalManagerDyn = useMemo(
-    () => dynamic(() => import('../TerminalManager.jsx'), { ssr: false }),
-    []
-  );
-
   // Function to determine file language based on extension
   const getFileLanguage = (fileName) => {
     const extension = fileName.split('.').pop()?.toLowerCase();

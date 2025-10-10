@@ -11,16 +11,13 @@ const storage = new Storage({
 
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
 
-
 export const config = {
     api: {
         bodyParser: false, 
     },
 };
 
-export async function GET(
-    req: NextRequest, 
-) {
+export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const fileId = searchParams.get('fileId');
     
@@ -36,7 +33,7 @@ export async function GET(
         
         const fileStream = file.createReadStream();
         
-        return new NextResponse(fileStream as any, { 
+        return new NextResponse(fileStream, { 
             headers: {
                 'Content-Type': metadata.contentType || 'application/octet-stream',
                 'Content-Disposition': `inline; filename="${metadata.name}"`, 
@@ -49,16 +46,16 @@ export async function GET(
     }
 }
 
-
-export async function POST(req: NextRequest) {
+export async function POST(req) {
     if (!BUCKET_NAME) {
         return NextResponse.json({ error: 'GCS Bucket name not configured.' }, { status: 500 });
     }
 
     try {
         const data = await req.formData();
-        const file = data.get('file') as File;
-        const fileId = data.get('fileId') as string;
+        const file = data.get('file');
+        const fileId = data.get('fileId');
+        
         if (!fileId) {
             return NextResponse.json({ error: 'fileId is required in the request body.' }, { status: 400 });
         }
@@ -75,8 +72,7 @@ export async function POST(req: NextRequest) {
         const bucket = storage.bucket(BUCKET_NAME);
         const blob = bucket.file(fileId);
 
-
-        await new Promise<void>((resolve, reject) => {
+        await new Promise((resolve, reject) => {
             const blobStream = blob.createWriteStream({
                 resumable: false,
                 metadata: {

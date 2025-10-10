@@ -1,10 +1,9 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-
-export async function GET(request: NextRequest) {
+export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -32,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request) {
     try {
         const { name, workspaceId, parentId } = await request.json();
 
@@ -57,7 +56,7 @@ export async function POST(request: NextRequest) {
     }
 }
 
-export async function PUT(request: NextRequest) {
+export async function PUT(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -72,7 +71,7 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'At least one field (name or parentId) is required for update.' }, { status: 400 });
         }
 
-        const updateData: { name?: string; parentId?: string | null } = {};
+        const updateData = {};
 
         if (name !== undefined) {
             updateData.name = name;
@@ -89,7 +88,7 @@ export async function PUT(request: NextRequest) {
 
         return NextResponse.json(updatedItem, { status: 200 });
     } catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === 'P2025') {
+        if (error instanceof Error && error.code === 'P2025') {
             return NextResponse.json({ error: 'Workspace item not found.' }, { status: 404 });
         }
         console.error('Error updating workspace item:', error);
@@ -97,7 +96,7 @@ export async function PUT(request: NextRequest) {
     }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(request) {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -112,7 +111,7 @@ export async function DELETE(request: NextRequest) {
 
         return NextResponse.json({ message: 'Workspace item deleted successfully.' }, { status: 200 });
     } catch (error) {
-        if (error instanceof Error && 'code' in error && error.code === 'P2025') {
+        if (error instanceof Error && error.code === 'P2025') {
             return NextResponse.json({ error: 'Workspace item not found.' }, { status: 404 });
         }
         console.error('Error deleting workspace item:', error);

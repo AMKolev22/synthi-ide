@@ -17,11 +17,9 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
-const TerminalManagerDyn = useMemo(
-    () => dynamic(() => import('../TerminalManager.jsx'), { ssr: false }),
-    []
-  );
-
+const TerminalManagerDyn = dynamic(() => import('../TerminalManager.jsx'), { 
+  ssr: false 
+});
 const EditorPanel = ({ 
   activeFile, 
   code, 
