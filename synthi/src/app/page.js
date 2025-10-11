@@ -1,6 +1,6 @@
 "use client"
 import React, { useState, useEffect, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Rocket } from "lucide-react";
 import { toast } from "sonner";
 
 /* ---------- Star component (receives scrollY from parent for parallax) ---------- */
@@ -200,6 +200,25 @@ export default function Home() {
             <span className="text-[#E5E5E5] font-semibold text-lg tracking-tight">synthi</span>
             <span className="text-[#E5E5E5] font-semibold text-sm -ml-2 -mt-2 tracking-tight">26'</span>
           </div>
+        </div>
+      </div>
+
+      <div 
+        className="fixed right-4 z-50 transition-all duration-300 ease-out"
+        style={{ 
+          top: `${Math.min(scrollProgress * 0.8 + 10, 85)}%`,
+          opacity: scrollProgress > 5 ? 1 : 0
+        }}
+      >
+        <div className="relative">
+          <Rocket 
+            className="text-[#58A4B0] transform rotate-180" 
+            size={32}
+            style={{
+              filter: 'drop-shadow(0 0 8px rgba(88, 164, 176, 0.6))'
+            }}
+          />
+          <div className="absolute top-8 left-1/2 -translate-x-1/2 w-0.5 h-12 bg-gradient-to-b from-[#58A4B0] to-transparent opacity-60" />
         </div>
       </div>
 
