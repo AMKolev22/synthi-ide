@@ -1,8 +1,0 @@
-C:\Users\alexandar.kolev\Downloads\synthi-ide\test-terminal-connection\web-term\target\debug\deps\serial_windows-74aa123e90027982.d: C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\lib.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\com.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\error.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\ffi.rs
-
-C:\Users\alexandar.kolev\Downloads\synthi-ide\test-terminal-connection\web-term\target\debug\deps\libserial_windows-74aa123e90027982.rmeta: C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\lib.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\com.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\error.rs C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\ffi.rs
-
-C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\lib.rs:
-C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\com.rs:
-C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\error.rs:
-C:\Users\alexandar.kolev\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serial-windows-0.4.0\src\ffi.rs:
