@@ -1,0 +1,10 @@
+[package]
+name = "web-term"
+version = "0.1.0"
+edition = "2021"  # Changed from 2024 (which doesn't exist yet)
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+portable-pty = "0.8"
