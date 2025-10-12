@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { Storage } from '@google-cloud/storage';
+
+
+const storage = new Storage();
+const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
 
 const prisma = new PrismaClient();
 
@@ -34,9 +39,24 @@ export async function POST(request) {
         }
 
         const newWorkspace = await prisma.workspace.create({
-            data: {
-                name
-            },
+            data: { name },
+        });
+
+        const rootFolderPath = `workspaces/${newWorkspace.id}/`;
+        const bucket = storage.bucket(BUCKET_NAME);
+        
+        await bucket.file(rootFolderPath).save('', {
+            contentType: 'application/x-directory',
+            resumable: false,
+            metadata: {
+                cacheControl: 'no-cache',
+                metadata: {
+                    isFolder: 'true',
+                    name: newWorkspace.name,
+                    createdBy: 'synthi-ide',
+                    isMarker: 'true'
+                }
+            }
         });
 
         return NextResponse.json(newWorkspace, { status: 201 });
@@ -60,8 +80,6 @@ export async function PUT(request) {
         if (!name) {
             return NextResponse.json({ error: 'At least one field (name or parentId) is required for update.' }, { status: 400 });
         }
-
-        const updateData = {};
 
         const updatedItem = await prisma.workspace.update({
             where: { id },
@@ -87,6 +105,13 @@ export async function DELETE(request) {
     }
 
     try {
+        const storagePathPrefix = `workspaces/${id}/`;
+        
+        await storage.bucket(BUCKET_NAME).deleteFiles({
+            prefix: storagePathPrefix,
+            force: true, 
+        });
+
         await prisma.workspace.delete({
             where: { id },
         });
