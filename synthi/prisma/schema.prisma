@@ -15,21 +15,6 @@ datasource db {
 }
 
 
-model WorkspaceItem {
-  id          String    @id @default(cuid())
-  name        String
-  workspaceId String
-  parentId    String?
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  workspace   Workspace @relation(fields: [workspaceId], references: [id])
-  parent      WorkspaceItem? @relation("ItemToParent", fields: [parentId], references: [id])
-  children    WorkspaceItem[] @relation("ItemToParent")
-}
-
-
 model Workspace {
   id        String   @id @default(cuid())
   name      String
@@ -38,7 +23,6 @@ model Workspace {
   updatedAt DateTime @updatedAt
 
   users     User[]   @relation("UserWorkspaces")
-  items     WorkspaceItem[]
 }
 
 
