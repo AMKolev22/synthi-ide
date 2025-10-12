@@ -1,0 +1,1 @@
+C:\Users\alexandar.kolev\Downloads\synthi-ide\test-terminal-connection\web-term\target\debug\web-term.exe: C:\Users\alexandar.kolev\Downloads\synthi-ide\test-terminal-connection\web-term\src\handle_connection.rs C:\Users\alexandar.kolev\Downloads\synthi-ide\test-terminal-connection\web-term\src\main.rs
