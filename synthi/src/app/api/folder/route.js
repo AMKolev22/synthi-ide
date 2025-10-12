@@ -37,7 +37,7 @@ export async function POST(req) {
                 cacheControl: 'no-cache',
                 metadata: {
                     isFolder: 'true',
-                    folderName: folderName,
+                    name: folderName,
                     createdBy: 'synthi-ide',
                     isMarker: 'true'
                 }
