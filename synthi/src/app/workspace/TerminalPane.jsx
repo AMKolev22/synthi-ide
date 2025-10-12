@@ -1,90 +1,125 @@
 'use client';
-
 import React, { useEffect, useRef } from 'react';
 
 export default function TerminalPane() {
   const containerRef = useRef(null);
   const termRef = useRef(null);
-  const resizeObserverRef = useRef(null);
+  const wsRef = useRef(null);
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     let term;
     let fitAddon;
-    let webLinksAddon;
-    let dispose;
-    let prompt = ' PS C:\\> ';
-    let inputBuffer = '';
-    let promptLength = prompt.length;
+    let ws;
 
     const init = async () => {
+      // Prevent multiple initializations
+      if (initializedRef.current) return;
+      initializedRef.current = true;
+
       const { Terminal } = await import('xterm');
       const { FitAddon } = await import('xterm-addon-fit');
-      const { WebLinksAddon } = await import('xterm-addon-web-links');
 
       term = new Terminal({
-        convertEol: true,
+        convertEol: false,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-        theme: {
-          background: '#1e1e1e',
-          foreground: '#d4d4d4',
-          cursor: '#aeafad',
-          selection: '#264f78',
-        },
+        theme: { background: '#1e1e1e', foreground: '#d4d4d4' },
+        cursorBlink: true,
+        allowTransparency: false,
+        cols: 80,
+        rows: 24,
       });
-      fitAddon = new FitAddon();
-      webLinksAddon = new WebLinksAddon();
-      term.loadAddon(fitAddon);
-      term.loadAddon(webLinksAddon);
 
+      fitAddon = new FitAddon();
+      term.loadAddon(fitAddon);
       term.open(containerRef.current);
       fitAddon.fit();
-      term.writeln(' Welcome to Synthi Terminal');
-      term.write('\r\n' + prompt);
 
-      inputBuffer = '';
+      // Open WebSocket to Rust backend (removed /terminal path)
+      ws = new WebSocket('ws://192.168.100.104:8080');
+      wsRef.current = ws;
+
+      ws.binaryType = 'arraybuffer'; // Handle binary data
+
+      ws.onopen = () => {
+        console.log('WebSocket connected');
+        // Optionally send initial terminal size
+        const { cols, rows } = term;
+        console.log(`Terminal size: ${cols}x${rows}`);
+      };
+
+      // Display backend output in terminal
+      ws.onmessage = (event) => {
+        if (event.data instanceof ArrayBuffer) {
+          // Convert ArrayBuffer to Uint8Array to string
+          const uint8Array = new Uint8Array(event.data);
+          term.write(uint8Array);
+        } else if (typeof event.data === 'string') {
+          term.write(event.data);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        console.error('WebSocket readyState:', ws.readyState);
+        console.error('WebSocket url:', ws.url);
+      };
+
+      ws.onclose = (event) => {
+        console.log('WebSocket closed');
+        console.log('Close code:', event.code);
+        console.log('Close reason:', event.reason);
+        console.log('Was clean:', event.wasClean);
+      };
+      // Send user input to backend
       term.onData((data) => {
-        // Prevent deleting the prompt
-        if (data === '\u007F' || data === '\b') { // Backspace
-          if (inputBuffer.length > 0) {
-            inputBuffer = inputBuffer.slice(0, -1);
-            term.write('\b \b');
-          }
-          // If inputBuffer is empty, do nothing (can't delete prompt)
-          return;
+        if (ws.readyState === WebSocket.OPEN) {
+          // Convert string to Uint8Array for binary transmission
+          const encoder = new TextEncoder();
+          ws.send(encoder.encode(data));
         }
-        if (data === '\r') {
-          term.write('\r\n' + prompt);
-          inputBuffer = '';
-          return;
-        }
-        // Only allow input after prompt
-        inputBuffer += data;
-        term.write(data);
       });
 
-      const onResize = () => fitAddon.fit();
-      window.addEventListener('resize', onResize);
-      dispose = () => window.removeEventListener('resize', onResize);
-
-      // Observe container resize to avoid flashing/recreation
-      if (containerRef.current && 'ResizeObserver' in window) {
-        resizeObserverRef.current = new ResizeObserver(() => {
+      // Handle terminal resize
+      const handleResize = () => {
+        if (fitAddon && term) {
           fitAddon.fit();
-        });
-        resizeObserverRef.current.observe(containerRef.current);
+          // Optionally send new size to backend
+          const { cols, rows } = term;
+          console.log(`Terminal resized: ${cols}x${rows}`);
+        }
+      };
+
+      // Use ResizeObserver for better resize detection
+      const resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+
+      if (containerRef.current) {
+        resizeObserver.observe(containerRef.current);
       }
 
-      termRef.current = term;
+      window.addEventListener('resize', handleResize);
+
+      // Store for cleanup
+      termRef.current = { term, fitAddon, handleResize, resizeObserver };
     };
 
     init();
 
     return () => {
-      if (resizeObserverRef.current) {
-        try { resizeObserverRef.current.disconnect(); } catch {}
+      initializedRef.current = false;
+      if (termRef.current) {
+        const { term, handleResize, resizeObserver } = termRef.current;
+        window.removeEventListener('resize', handleResize);
+        if (resizeObserver) {
+          resizeObserver.disconnect();
+        }
+        if (term) term.dispose();
       }
-      if (dispose) dispose();
-      if (term) term.dispose();
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
     };
   }, []);
 
@@ -94,5 +129,3 @@ export default function TerminalPane() {
     </div>
   );
 }
-
-

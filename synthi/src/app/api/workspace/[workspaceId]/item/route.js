@@ -13,7 +13,8 @@ const BUCKET_NAME = process.env.GCS_BUCKET_NAME || 'my-workspace-content-bucket'
 
 
 export async function GET(request, { params }) {
-    const { workspaceId } = params;
+    const data = await params;
+    const workspaceId = data.workspaceId;
     const searchParams = request.nextUrl.searchParams;
     const filePath = searchParams.get('filePath');
 
@@ -73,7 +74,8 @@ export async function GET(request, { params }) {
 }
 
 export async function POST(request, { params }) {
-    const { workspaceId } = params;
+    const data = await params;
+    const workspaceId = data.workspaceId;
 
     try {
         const formData = await request.formData();
@@ -160,7 +162,8 @@ export async function POST(request, { params }) {
 }
 
 export async function PUT(request, { params }) {
-    const { workspaceId } = params;
+    const data = await params;
+    const workspaceId = data.workspaceId;
     const filePath = request.body.get('filePath');
     const newPath = request.body.get('newPath');
 
@@ -274,7 +277,8 @@ export async function PUT(request, { params }) {
 
 
 export async function DELETE(request, { params }) {
-    const { workspaceId } = params;
+    const data = await params;
+    const workspaceId = data.workspaceId;
     const filePath = request.body.get('filePath');
 
     try {

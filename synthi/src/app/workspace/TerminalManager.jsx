@@ -92,8 +92,7 @@ export default function TerminalManager({ visible, onCloseAll }) {
 
   // Removed dragging logic per request
 
-  if (!visible && !detached) return null;
-
+  if (!visible) return null;
   const body = (
     <div className="bg-[#1e1e1e]" style={{ height: '208px' }}>
       {terminals.length === 0 ? (
@@ -101,14 +100,7 @@ export default function TerminalManager({ visible, onCloseAll }) {
       ) : (
         terminals.filter(t => t.id === activeId).map(t => (
           <div key={t.id} className="h-full w-full">
-            {t.split ? (
-              <div className="grid grid-cols-2 h-full">
-                <TerminalPane />
-                <TerminalPane />
-              </div>
-            ) : (
-              <TerminalPane />
-            )}
+            <TerminalPane key={t.id} />
           </div>
         ))
       )}

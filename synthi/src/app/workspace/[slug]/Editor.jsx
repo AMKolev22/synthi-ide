@@ -17,19 +17,19 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 
-const TerminalManagerDyn = dynamic(() => import('../TerminalManager.jsx'), { 
-  ssr: false 
+const TerminalManagerDyn = dynamic(() => import('../TerminalManager.jsx'), {
+  ssr: false
 });
-const EditorPanel = ({ 
-  activeFile, 
-  code, 
-  setCode, 
-  position, 
-  setPosition, 
-  breadcrumb, 
-  handleFileSelect, 
-  onRun, 
-  showTerminal, 
+const EditorPanel = ({
+  activeFile,
+  code,
+  setCode,
+  position,
+  setPosition,
+  breadcrumb,
+  handleFileSelect,
+  onRun,
+  showTerminal,
   setShowTerminal,
   isUnsaved,
   onSave
@@ -50,6 +50,7 @@ const EditorPanel = ({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeFile, isUnsaved, onSave]);
+  console.log("Breadcrumb", breadcrumb);
 
   return (
     <ResizablePanel defaultSize={76} minSize={20}>
@@ -59,32 +60,39 @@ const EditorPanel = ({
             <div className="px-3 py-2 text-sm border-b border-[#2a2a2a] bg-[#252526] flex justify-between items-center gap-1 overflow-x-auto whitespace-nowrap">
               <div className='flex flex-row items-center gap-2'>
                 {breadcrumb && breadcrumb.length > 0 ? (
-                  breadcrumb.map((node, idx) => (
-                    <span key={`${node.name}-${idx}`} className="flex items-center">
-                      {node.type === 'folder' ? <Folder className="w-3.5 h-3.5 mr-1 text-gray-400" /> : <FileText className="w-3.5 h-3.5 mr-1 text-gray-400" />}
-                      {node.type === 'folder' ? (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <button className={`text-xs ${idx === breadcrumb.length - 1 ? 'text-gray-100' : 'text-gray-300'} hover:text-gray-100`}>{node.name}</button>
-                          </PopoverTrigger>
-                          <PopoverContent className="min-w-[200px] bg-[#252526] border border-[#2a2a2a]">
-                            <div className="text-xs text-gray-300 mb-2">{node.name}</div>
-                            <div className="space-y-1">
-                              {(node.children || []).map((child, i) => (
-                                <div key={`${child.name}-${i}`} className="flex items-center cursor-pointer hover:bg-[#2f2f2f] rounded px-2 py-1" onClick={() => child.type === 'file' ? handleFileSelect(child) : null}>
-                                  <span className="mr-2">{child.type === 'folder' ? <Folder className="w-3.5 h-3.5 text-gray-400" /> : <FileText className="w-3.5 h-3.5 text-gray-400" />}</span>
-                                  <span className="text-xs text-gray-200">{child.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
-                      ) : (
-                        <span className={`text-xs ${idx === breadcrumb.length - 1 ? 'text-gray-100' : 'text-gray-400'}`}>{node.name}</span>
-                      )}
-                      {idx < breadcrumb.length - 1 && <span className="px-1 text-gray-500">›</span>}
-                    </span>
-                  ))
+                  breadcrumb.map((name, idx) => {
+                    const isLast = idx === breadcrumb.length - 1;
+                    const isFile = isLast && name.includes('.');
+
+                    return (
+                      <span key={`${name}-${idx}`} className="flex items-center">
+                        {isFile ? (
+                          <FileText className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                        ) : (
+                          <Folder className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                        )}
+
+                        {!isFile ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button className={`text-xs ${isLast ? 'text-gray-100' : 'text-gray-300'} hover:text-gray-100`}>
+                                {name}
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent className="min-w-[200px] bg-[#252526] border border-[#2a2a2a]">
+                              {/* You need to get children from your file tree here */}
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          <span className={`text-xs ${isLast ? 'text-gray-100' : 'text-gray-400'}`}>
+                            {name}
+                          </span>
+                        )}
+
+                        {idx < breadcrumb.length - 1 && <span className="px-1 text-gray-500">›</span>}
+                      </span>
+                    );
+                  })
                 ) : (
                   <span className="text-xs text-gray-400">No file selected</span>
                 )}
