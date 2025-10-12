@@ -8,12 +8,11 @@ import {
 } from '@/components/ui/resizable';
 import FileTreeView from "./FileTree.jsx"
 import EditorPanel from "./Editor.jsx"
+import { use } from 'react';
 
-const deepCloneFiles = (files) => {
-  return JSON.parse(JSON.stringify(files));
-};
 
-export default function EditorPage() {
+export default function EditorPage({ params }) {
+  const { slug } = use(params);
   const [files, setFiles] = useState([]);
   const [editorInstance, setEditorInstance] = useState(null);
   const [position, setPosition] = useState({ lineNumber: 0, column: 0 });
@@ -217,13 +216,12 @@ export default function EditorPage() {
   };
 
   // Function to fetch all files from bucket
-  const fetchBucketFiles = async (silent = false) => {
+  const fetchFiles = async (silent = false) => {
     if (!silent) setLoadingFiles(true);
     try {
-      const response = await fetch('/api/bucket');
+      const response = await fetch(`/api/workspace/${slug}`);
       if (response.ok) {
         const data = await response.json();
-        const treeFiles = convertBucketFilesToTree(data.files, data.folders || []);
         
         // Check if file count has changed
         const currentFileCount = data.files.length;
@@ -232,8 +230,8 @@ export default function EditorPage() {
           console.log(`File count changed: ${lastFileCount} -> ${currentFileCount}`);
         }
         
-        setBucketFiles(treeFiles);
-        setFiles(treeFiles);
+        setBucketFiles(data.files);
+        setFiles(data.files);
         setLastUpdateTime(Date.now());
       } else {
         console.error('Failed to fetch bucket files');
@@ -241,11 +239,11 @@ export default function EditorPage() {
     } catch (error) {
       console.error('Error fetching bucket files:', error);
     } finally {
-      if (!silent) setLoadingFiles(false);
+      setLoadingFiles(false);
     }
   };
 
-  const findPathToTarget = useCallback((nodes, target, path = []) => {
+  /*const findPathToTarget = useCallback((nodes, target, path = []) => {
     for (const node of nodes) {
       const currentPath = [...path, node];
       if (node.type === 'file' && node.name === target.name && node.language === target.language) {
@@ -257,7 +255,9 @@ export default function EditorPage() {
       }
     }
     return null;
-  }, []);
+  }, []);*/
+
+  
 
   const handleFileSelect = async (file) => {
     if (activeFile) {
@@ -266,14 +266,14 @@ export default function EditorPage() {
       setFiles(updatedFiles);
       
       // Update cache with current content
-      const cacheKey = activeFile.bucketPath || activeFile.name;
+      const cacheKey = activeFile.path || activeFile.name;
       setFileContentCache(prev => new Map(prev.set(cacheKey, code)));
     }
 
     setActiveFile(file);
     
     // Check cache first for instant loading
-    const cacheKey = file.bucketPath || file.name;
+    const cacheKey = file.path;
     const cachedContent = fileContentCache.get(cacheKey);
     
     if (cachedContent !== undefined) {
@@ -283,9 +283,9 @@ export default function EditorPage() {
       setIsUnsaved(false);
     } else {
       // Load from API only if not cached
-      if (file.bucketPath) {
+      if (file.path) {
         try {
-          const response = await fetch(`/api/file?fileId=${encodeURIComponent(file.bucketPath)}`);
+          const response = await fetch(`/api/workspace/${slug}/item?filePath=${encodeURIComponent(file.path)}`);
           if (response.ok) {
             const content = await response.text();
             setCode(content);
@@ -315,8 +315,8 @@ export default function EditorPage() {
     
     setIsUnsaved(false);
     setTitle(file.name);
-    const pathArr = findPathToTarget(files, file) || [];
-    setBreadcrumb(pathArr);
+    //const pathArr = findPathToTarget(files, file) || [];
+    setBreadcrumb(file.path.split("/"));
   };
 
   const handleCodeChange = (newCode) => {
@@ -333,11 +333,9 @@ export default function EditorPage() {
       const blob = new Blob([code], { type: 'text/plain' });
       formData.append('file', blob, activeFile.name);
       
-      // Use bucketPath if it's a bucket file, otherwise use the file name
-      const fileId = activeFile.bucketPath || activeFile.name;
-      formData.append('fileId', fileId);
+      formData.append('filePath', activeFile.path);
 
-      const response = await fetch('/api/file', {
+      const response = await fetch(`/api/workspace/${slug}/item/`, {
         method: 'POST',
         body: formData,
       });
@@ -350,11 +348,11 @@ export default function EditorPage() {
         setIsUnsaved(false);
         
         // Update cache with saved content
-        const cacheKey = activeFile.bucketPath || activeFile.name;
+        const cacheKey = activeFile.path;
         setFileContentCache(prev => new Map(prev.set(cacheKey, code)));
         
         console.log('File saved successfully');
-        fetchBucketFiles(true);
+        fetchFiles(true);
         
       } else {
         console.error('Failed to save file');
@@ -366,7 +364,7 @@ export default function EditorPage() {
 
   // Fetch bucket files on component mount
   useEffect(() => {
-    fetchBucketFiles();
+    fetchFiles();
   }, []);
 
   // Removed automatic polling - files are only fetched on demand
@@ -374,10 +372,10 @@ export default function EditorPage() {
   // Helper function to find the first actual file in the tree
   const findFirstFile = (nodes) => {
     for (const node of nodes) {
-      if (node.type === 'file') {
+      if (!node.isFolder) {
         return node;
       }
-      if (node.type === 'folder' && node.children) {
+      if (node.isFolder && node.children) {
         const found = findFirstFile(node.children);
         if (found) return found;
       }
@@ -391,8 +389,8 @@ export default function EditorPage() {
       if (firstFile) {
         setActiveFile(firstFile);
         setCode(firstFile.content || '');
-        const pathArr = findPathToTarget(files, firstFile) || [];
-        setBreadcrumb(pathArr);
+        //const pathArr = findPathToTarget(files, firstFile) || [];
+        setBreadcrumb(firstFile.path.split("/"));
       }
     }
   }, [files, activeFile]);
@@ -449,16 +447,16 @@ export default function EditorPage() {
       const formData = new FormData();
       const blob = new Blob([''], { type: 'text/plain' });
       formData.append('file', blob, finalFileName);
-      formData.append('fileId', fullPath);
+      formData.append('filePath', fullPath);
 
-      const response = await fetch('/api/file', {
+      const response = await fetch(`/api/workspace/${slug}/item`, {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
         // Optimize: Only refresh if needed, don't wait for it
-        fetchBucketFiles(true);
+        fetchFiles(true);
         
         // Create a temporary file object for immediate selection
         const tempFile = {
@@ -466,7 +464,7 @@ export default function EditorPage() {
           type: 'file',
           language: getFileLanguage(finalFileName),
           content: '',
-          bucketPath: fullPath
+          path: fullPath
         };
         
         // Select the new file immediately
@@ -515,22 +513,23 @@ export default function EditorPage() {
       alert('A folder with this name already exists. Please choose a different name.');
       return;
     }
+
+    const fullPath = newFileParent ? `${newFileParent}/${finalFolderName}` : finalFolderName;
     
     try {
-      const response = await fetch('/api/folder', {
+      const formData = new FormData();
+      const blob = new Blob([''], { type: 'text/plain' });
+      formData.append('file', blob, finalFolderName);
+      formData.append('filePath', fullPath + "/");
+
+      const response = await fetch(`/api/workspace/${slug}/item`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          folderName: finalFolderName,
-          parentPath: newFileParent
-        }),
+        body: formData,
       });
 
       if (response.ok) {
         // Optimize: Don't wait for refresh, do it in background
-        fetchBucketFiles(true);
+        fetchFiles(true);
         
         // Reset state immediately
         setIsCreatingFolder(false);
@@ -554,10 +553,10 @@ export default function EditorPage() {
 
   const findFileInTree = (nodes, fileName) => {
     for (const node of nodes) {
-      if (node.type === 'file' && node.name === fileName) {
+      if (!node.isFolder && node.name === fileName) {
         return node;
       }
-      if (node.type === 'folder' && node.children) {
+      if (node.isFolder && node.children) {
         const found = findFileInTree(node.children, fileName);
         if (found) return found;
       }
@@ -567,10 +566,10 @@ export default function EditorPage() {
 
   const findFolderInTree = (nodes, folderName) => {
     for (const node of nodes) {
-      if (node.type === 'folder' && node.name === folderName) {
+      if (node.isFolder && node.name === folderName) {
         return node;
       }
-      if (node.type === 'folder' && node.children) {
+      if (node.isFolder && node.children) {
         const found = findFolderInTree(node.children, folderName);
         if (found) return found;
       }
@@ -594,21 +593,20 @@ export default function EditorPage() {
     }
 
     try {
-      const response = await fetch('/api/rename', {
-        method: 'POST',
+      const response = await fetch(`/api/workspace/${slug}/item`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          oldPath: item.bucketPath || item.name,
-          newName: newName.trim(),
-          isFolder: item.type === 'folder'
+          filePath: item.path,
+          newPath: item.path.split('/').slice(0, -1).concat(newName).join('/')
         }),
       });
 
       if (response.ok) {
         // Refresh the file tree
-        fetchBucketFiles(true);
+        fetchFiles(true);
         
         // Reset state
         setIsRenaming(false);
@@ -631,7 +629,7 @@ export default function EditorPage() {
   };
 
   const handleDelete = async (item) => {
-    const confirmMessage = item.type === 'folder' 
+    const confirmMessage = item.isFolder 
       ? `Are you sure you want to delete the folder "${item.name}" and all its contents? This action cannot be undone.`
       : `Are you sure you want to delete the file "${item.name}"? This action cannot be undone.`;
     
@@ -640,14 +638,13 @@ export default function EditorPage() {
     }
 
     try {
-      const response = await fetch('/api/delete', {
-        method: 'POST',
+      const response = await fetch(`/api/workspace/${slug}/item`, {
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          path: item.bucketPath || item.name,
-          isFolder: item.type === 'folder'
+          filePath: item.path,
         }),
       });
 
@@ -661,7 +658,7 @@ export default function EditorPage() {
         }
         
         // Refresh the file tree
-        fetchBucketFiles(true);
+        fetchFiles(true);
       } else {
         const errorData = await response.json();
         alert(`Failed to delete: ${errorData.error || 'Unknown error'}`);

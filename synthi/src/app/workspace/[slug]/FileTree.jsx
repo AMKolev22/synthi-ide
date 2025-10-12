@@ -18,7 +18,7 @@ const FileTreeView = ({ files, onFileSelect, activeFile, onAction, onToggleOrien
     while (stack.length) {
       const n = stack.shift();
       if (n.name === name) return n;
-      if (n.type === 'folder' && n.children) stack.push(...n.children);
+      if (n.isFolder && n.children) stack.push(...n.children);
     }
     return null;
   };

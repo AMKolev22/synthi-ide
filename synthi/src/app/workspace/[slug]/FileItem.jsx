@@ -9,7 +9,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
   const isSelected = activeFile && activeFile.name === item.name && activeFile.language === item.language;
 
   const handleClick = () => {
-    if (item.type === 'folder') {
+    if (item.isFolder) {
       // Only allow opening if folder has children and is not empty
       if (item.children && item.children.length > 1 && !item.isEmpty) {
         setIsOpen(!isOpen);
@@ -21,16 +21,11 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
   };
 
   // Check if folder should be expandable
-  const isExpandable = item.type === 'folder' && item.children && item.children.length > 1 && !item.isEmpty;
+  const isExpandable = item.isFolder && item.children && item.children.length >= 1;
   
   // Debug logging
-  if (item.type === 'folder') {
-    console.log(`Folder ${item.name}:`, {
-      hasChildren: item.children && item.children.length > 0,
-      childrenCount: item.children ? item.children.length : 0,
-      isEmpty: item.isEmpty,
-      isExpandable
-    });
+  if (item.isFolder) {
+    console.log(`Folder ${item.name}:`, item);
   }
 
   return (
@@ -41,7 +36,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
         onClick={handleClick}
         data-node-name={item.name}
       >
-        {isExpandable && <ChevronIcon isOpen={isOpen} isSelected={isSelected} />}
+        {isExpandable && <div onClick={() => {setIsOpen(!isOpen)}}><ChevronIcon isOpen={isOpen} isSelected={isSelected} /></div>}
         <FileIcon node={item} isSelected={isSelected} />
         <span className={`text-sm truncate ${isSelected ? 'text-white' : 'text-gray-200'}`}>{item.name}</span>
       </div>

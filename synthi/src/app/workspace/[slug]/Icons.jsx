@@ -14,7 +14,7 @@ export const ChevronIcon = ({ isOpen, isSelected }) => (
 );
 
 export const FileIcon = ({ node, isSelected }) => {
-  if (node.type === 'folder') {
+  if (node.isFolder) {
     return node.__open ? (
       <FolderOpen className={`w-4 h-4 mr-2 ${isSelected ? 'text-gray-100' : 'text-gray-300'}`} />
     ) : (
