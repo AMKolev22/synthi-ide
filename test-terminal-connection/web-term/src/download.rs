@@ -32,15 +32,7 @@ pub async fn download(
 ) -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
     send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
-
-    // -------------------------
-    // HARD-CODED CREDENTIALS
-    // -------------------------
-    // WARNING: This file contains a placeholder. Replace the fields below with your
-    // actual service account values. Do NOT commit the file to source control.
-    //
-    // Example: paste your private key block inside the private_key string.
-    // If your private key is the multi-line PEM block, keep the newlines exactly.
+    
     let credentials_json = json!({
         "type": "service_account",
         "project_id": "overview-synti",
@@ -61,7 +53,7 @@ pub async fn download(
     // -------------------------
     // Build the GCS object store
     // -------------------------
-    let bucket_name = "synthi-cloud-storage"; // replace with your bucket
+    let bucket_name = "synthi-cloud-storage";
 
     // Create a temporary file with the service account credentials in the system's temp directory
     let temp_cred_path = std::env::temp_dir().join(format!("temp_credentials_{}.json", std::process::id()));
@@ -165,11 +157,10 @@ pub async fn download(
         println!("✅ Saved to: {}", local_path.display());
         send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", object_name)).await;
     }
-
-    // Optionally change working directory to the downloaded folder
-    std::env::set_current_dir(&local_dir)?;
-    println!("📍 Changed working directory to: {}", local_dir.display());
-    send_progress_update(&mut progress_tx, "🎉 Download completed! Working directory changed.").await;
+    
+    // std::env::set_current_dir(&local_dir)?;
+    // println!("📍 Changed working directory to: {}", local_dir.display());
+    // send_progress_update(&mut progress_tx, "🎉 Download completed! Working directory changed.").await;
 
     // Clean up temporary credentials file
     let _ = fs::remove_file(&temp_cred_path);
