@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChevronIcon, FileIcon } from './Icons';
 
-const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
+const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction, onRightMouseButtonClick }) => {
     const [isOpen, setIsOpen] = useState(false);
     
     // Check if the item is currently the active file/folder (using path for uniqueness)
@@ -14,7 +14,11 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
 
     const paddingStyle = { paddingLeft: `${level * 16 + 8}px` };
 
-    const handleClick = () => {
+    const handleClick = (e) => {
+        if (e.button === 2) { // Right-click
+            onRightMouseButtonClick(item);
+            return;
+        }
         if (item.isFolder) {
             // Only toggle open if it's expandable
             if (isExpandable) {
@@ -34,6 +38,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
                 className={`flex items-center py-1 px-2 cursor-pointer transition duration-200 rounded-sm ${isSelected? 'bg-gray-600 text-white' : 'hover:bg-gray-700'}`}
                 style={paddingStyle}
                 onClick={handleClick}
+                onContextMenu={handleClick}
                 data-node-name={item.name}
             >
                 {isExpandable && (
@@ -58,6 +63,7 @@ const FileItem = ({ item, level = 0, onFileSelect, activeFile, onAction }) => {
                             onFileSelect={onFileSelect}
                             activeFile={activeFile}
                             onAction={onAction}
+                            onRightMouseButtonClick={onRightMouseButtonClick}
                         />
                     ))}
                 </div>
