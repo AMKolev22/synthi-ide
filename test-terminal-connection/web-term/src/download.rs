@@ -126,10 +126,10 @@ pub async fn download(
     send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
 
     // -------------------------
-    // Local directory for downloads (user's home directory: e.g., /home/synthi/<slug> for VM user synthi)
+    // Local directory for downloads (relative to current working directory: e.g., ./<slug>)
     // -------------------------
-    let local_base = std::env::home_dir()
-        .ok_or_else(|| "Failed to determine user's home directory")?;
+    let local_base = std::env::current_dir()
+        .map_err(|e| format!("Failed to determine current working directory: {}", e))?;
     let local_dir = local_base.join(slug);
     if !local_dir.exists() {
         fs::create_dir_all(&local_dir)?;
