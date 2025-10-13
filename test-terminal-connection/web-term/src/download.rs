@@ -116,14 +116,9 @@ pub async fn download(
     send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
 
     // -------------------------
-    // Local directory for downloads - Use home directory or temp directory
+    // Local directory for downloads - Write to /synthi/
     // -------------------------
-    let local_base = dirs::home_dir()
-        .or_else(|| Some(std::env::temp_dir()))
-        .ok_or("Failed to determine a writable directory")?;
-    
-    let downloads_dir = local_base.join("downloads");
-    let local_dir = downloads_dir.join(slug);
+    let local_dir = PathBuf::from("/synthi").join(slug);
     
     // Create the directory structure
     if !local_dir.exists() {
@@ -148,7 +143,12 @@ pub async fn download(
         // Construct the local file path (strip workspaces/slug prefix)
         let stripped = object_name.strip_prefix(prefix.as_ref())
             .ok_or_else(|| format!("Failed to strip prefix from: {}", object_name))?;
-        let local_path = local_dir.join(stripped);
+        
+        // Additional safety: remove any leading slashes from stripped path
+        let stripped_clean = stripped.trim_start_matches('/');
+        
+        println!("🔧 Processing: {} -> {}", object_name, stripped_clean);
+        let local_path = local_dir.join(stripped_clean);
         let parent_dir = local_path.parent().ok_or("Invalid path")?;
         
         // Create parent directories if they don't exist
@@ -170,7 +170,7 @@ pub async fn download(
             .map_err(|e| format!("Failed to write to file {}: {}", local_path.display(), e))?;
         
         println!("✅ Saved to: {}", local_path.display());
-        send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", stripped)).await;
+        send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", stripped_clean)).await;
     }
     
     println!("🎉 Download completed! Files saved to: {}", local_dir.display());
