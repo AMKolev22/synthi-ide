@@ -40,6 +40,16 @@ pub async fn handle_connection(
         cmd.arg("-NoExit");
     }
 
+    // Set custom environment variables for the shell
+    cmd.env("USER", "synthi");
+    cmd.env("LOGNAME", "synthi");
+    cmd.env("HOME", "/home/synthi");
+    
+    // Set custom PS1 prompt for bash
+    if !cfg!(target_os = "windows") {
+        cmd.env("PS1", r"\[\e[32m\]synthi@synthi-cloud\[\e[0m\]:\[\e[34m\]\w\[\e[0m\]\$ ");
+    }
+
     let mut child = pair.slave.spawn_command(cmd)?;
     let mut reader = pair.master.try_clone_reader()?;
     let mut writer = pair.master.take_writer()?;
@@ -120,19 +130,7 @@ pub async fn handle_connection(
         }
         println!("📤 WebSocket send task exiting");
     });
-    /*
-    let credentials = json!({
-        "type": "service_account",
-        "project_id": "overview-synti",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCZ4GiBbEtfsT/j\nl1mnS2MRbjyDjU7wQGeBvi3TD4jmBcWi8EHzp+H1rIxj9fHWBHA2LhEiETN6Hw6z\n4MnEGSLCk+XsGWIJrzc4oX8RGpEg9XLFAHEszSVavaumS4KMSuYc8MTZYsfRjYHd\nZDlej5i8qFsEn9F+UO/oOo/gQuAV2/uiT19qZTs0biKiJKT5a22O44QzD1tk0Fah\nZyvjv1YLGuwnRVNipLFqzxQQOkcJhj3r2KX+BQ+CAseanMzBf3JL+L9tJnnxZ0kD\nW/BYbmvDx48HAhdUZhAv0t0ZL3+1NzW8emVzRuzcsRRlt2v1f69PscAJUmtiHV9E\nPE3Hn5jFAgMBAAECggEAGtFvpU7YfB8KQYI5T9zlsT4DMfJI1bqDz6rzlZtZgq1y\n2okBFZQm34hpF2rf8Sro26h/t+5DiH8tMtB0mca/tiXMpq9t1L5C443R9YspzBK7\nI/aFwwcmAYCZD+yNHiJXpKeZx0FeDfmZrpovHXntZsP4yP+JpXg5t8GtHarKH0To\nhuTcnqKo7BfSjN/sZMGnvIjyja7eACVJU5FG9nd7vNQekm0ZUxLXylOvzBIAW1Xx\nDba3HHX0YIL+nyleZvC4A4JrXE65iPU3dqQvbwkZNsfCTtaE6AFfKiVcAAXf2icw\nU57e8NoH5fwmQ+5VXofhD7jbG8N2+8vZp+552fD7AQKBgQDNdUg2n7SZR75MNwx2\nXusH1U8xrt9R3cE0QE0vFglG7HzkSICXIvYytrdZWyxA0WTaT+xMxDGO4L7Ohuqk\nk8OiJ1r3RblrmING2eXaMl2cEYsZAlRBnrykSDNAIj0kD9S0lGFve+wmxC5Jw7dr\n5BaqpKRwGwHIJ+oewjEst9gcpQKBgQC/usfgUdsXqj0GO1gqMgL2u2bjsWKQHd53\nIC4lsL5kXwj/nCougXtrRIh2n1Gcq17tGPKPkryT5QLnxUu9ZY+6WkNZSJhcfFS8\nXxStrWH8NgCMpFR1O5hREKCYlebXL2zCRTUZS4943E8Olj4CjxLfStuU8t/W1p+b\nsEGB9zIxoQKBgQC0WmSWlqDZALJaguQssGuOR8Ap88DTQ18K9/sI/0YLfSKw3bgL\nc8Q8hknyZWc2StlGDmx2gq6iJkU4VBR7fb54hCWE9C6s9YcfVb1ASYAEtR2uSW4e\n4DHl3/8lKCkVk9P65FmXnGeTLBkZ5XUIf4MqLjautfZddjQ85eh2wbcyhQKBgEHw\n74WLIZtGBa77AhuhD7vkQELXY1rFqxm1i6mS3CiRNvsSrr9H8Ta3X2fM67jCh+dr\nySDwCsOi5Bjqll4RbBlfqgIvIZfNeyc+XFJPa3/e4tl8O0AGuyBGY7WW+MnRmcpH\nGzgT8MhUnSwbKEChDJCXomXcEnhFYKefOyiD6FOBAoGAfiXxNfmK6iTGqG3A+HHI\n1TupEEPZudygJ2Awd1+22iy5++0BqvMf3o0j0JP0u8ArwkcVDWNuLWrpI6aHZIb8\nVb34haFWR82J/tX2NTq9zAQq//d8OAgEH6PDb0K2YlQVOSmPcYWqd7aGVGMW5+QO\nhZeaOzLwbJLOa36t6Ph+70c=\n-----END PRIVATE KEY-----\n",
-        "client_email": "file-uploader-service@overview-synti.iam.gserviceaccount.com",
-        "client_id": "",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_x509_cert_url": ""
-    }); */
-    // Forward WebSocket input to PTY and handle download
+
     // Forward WebSocket input to PTY and handle download
     let ws_recv_task = tokio::spawn(async move {
         while let Some(msg) = ws_receiver.next().await {
@@ -170,18 +168,29 @@ pub async fn handle_connection(
                     if !slug.is_empty() {
                         println!("🚀 Auto-downloading from GCP bucket for slug: {}", slug);
                         match download(slug, Some(progress_tx.clone())).await {
-                            Ok(()) => {
+                            Ok(download_path) => {
+                                // Send cd command to the shell to navigate to the downloaded directory
+                                let cd_command = format!("cd {}\n", download_path.display());
+                                println!("📂 Sending cd command: {}", cd_command.trim());
+                                
+                                if input_tx.send(cd_command.as_bytes().to_vec()).is_err() {
+                                    println!("📥 Input channel closed");
+                                    break;
+                                }
+                                
+                                // Send a success message
                                 let success_msg = format!(
-                                    "✅ Download completed and working directory changed to '{}'\n",
-                                    slug
+                                    "\r\n✅ Download completed! Now in: {}\r\n",
+                                    download_path.display()
                                 );
+                                tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                                 if input_tx.send(success_msg.as_bytes().to_vec()).is_err() {
                                     println!("📥 Input channel closed");
                                     break;
                                 }
                             }
                             Err(e) => {
-                                let error_msg = format!("❌ Download failed: {}\n", e);
+                                let error_msg = format!("\r\n❌ Download failed: {}\r\n", e);
                                 if input_tx.send(error_msg.as_bytes().to_vec()).is_err() {
                                     println!("📥 Input channel closed");
                                     break;
