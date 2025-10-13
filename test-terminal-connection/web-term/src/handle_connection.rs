@@ -10,6 +10,8 @@ pub async fn handle_connection(stream: tokio::net::TcpStream) -> Result<(), Box<
     let ws_stream = accept_async(stream).await?;
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
+    println!("✅ WebSocket connection established");
+
     // Create PTY
     let pty_system = native_pty_system();
     let pair = pty_system.openpty(PtySize {
@@ -25,6 +27,8 @@ pub async fn handle_connection(stream: tokio::net::TcpStream) -> Result<(), Box<
     } else {
         "bash"
     };
+
+    println!("🐚 Starting shell: {}", shell);
 
     let mut cmd = CommandBuilder::new(shell);
     
@@ -46,42 +50,52 @@ pub async fn handle_connection(stream: tokio::net::TcpStream) -> Result<(), Box<
         let mut buf = [0u8; 8192];
         loop {
             match reader.read(&mut buf) {
-                Ok(0) => break,
+                Ok(0) => {
+                    println!("📖 PTY read: EOF");
+                    break;
+                }
                 Ok(n) => {
+                    println!("📖 PTY read: {} bytes", n);
                     if output_tx.send(buf[..n].to_vec()).is_err() {
+                        println!("📖 PTY read: channel closed");
                         break; // Channel closed
                     }
                 }
                 Err(e) => {
-                    eprintln!("PTY read error: {}", e);
+                    eprintln!("❌ PTY read error: {}", e);
                     break;
                 }
             }
         }
+        println!("📖 PTY read task exiting");
     });
 
     // Task 2: Write to PTY (blocking) from channel
     let write_task = tokio::task::spawn_blocking(move || {
         while let Some(data) = input_rx.blocking_recv() {
+            println!("✍️  PTY write: {} bytes", data.len());
             if let Err(e) = writer.write_all(&data) {
-                eprintln!("PTY write error: {}", e);
+                eprintln!("❌ PTY write error: {}", e);
                 break;
             }
             if let Err(e) = writer.flush() {
-                eprintln!("PTY flush error: {}", e);
+                eprintln!("❌ PTY flush error: {}", e);
                 break;
             }
         }
+        println!("✍️  PTY write task exiting");
     });
 
     // Forward PTY output to WebSocket
     let ws_send_task = tokio::spawn(async move {
         while let Some(data) = output_rx.recv().await {
+            println!("📤 Sending to WebSocket: {} bytes", data.len());
             if let Err(e) = ws_sender.send(Message::Binary(data)).await {
-                eprintln!("WebSocket send error: {}", e);
+                eprintln!("❌ WebSocket send error: {}", e);
                 break;
             }
         }
+        println!("📤 WebSocket send task exiting");
     });
 
     // Forward WebSocket input to PTY
@@ -89,24 +103,57 @@ pub async fn handle_connection(stream: tokio::net::TcpStream) -> Result<(), Box<
         while let Some(msg) = ws_receiver.next().await {
             match msg {
                 Ok(Message::Binary(data)) => {
-                    if input_tx.send(data).is_err() {
-                        break; // Channel closed
+                    println!("📥 Received binary message: {} bytes", data.len());
+                    
+                    // Debug: Show what was typed (if valid UTF-8)
+                    if let Ok(text) = String::from_utf8(data.clone()) {
+                        // Show printable characters, escape control chars
+                        let display: String = text.chars()
+                            .take(50)
+                            .map(|c| {
+                                if c.is_control() {
+                                    format!("\\x{:02x}", c as u8)
+                                } else {
+                                    c.to_string()
+                                }
+                            })
+                            .collect();
+                        println!("   Content: {}", display);
                     }
-                }
-                Ok(Message::Text(text)) => {
-                    // xterm.js might send text messages too
-                    if input_tx.send(text.into_bytes()).is_err() {
+                    
+                    if input_tx.send(data).is_err() {
+                        println!("📥 Input channel closed");
                         break;
                     }
                 }
-                Ok(Message::Close(_)) => break,
-                Err(e) => {
-                    eprintln!("WebSocket receive error: {}", e);
+                Ok(Message::Text(text)) => {
+                    println!("📥 Received text message: {:?}", text);
+                    
+                    if input_tx.send(text.into_bytes()).is_err() {
+                        println!("📥 Input channel closed");
+                        break;
+                    }
+                }
+                Ok(Message::Close(frame)) => {
+                    println!("🔴 Close message received: {:?}", frame);
                     break;
                 }
-                _ => {}
+                Ok(Message::Ping(data)) => {
+                    println!("🏓 Ping received: {} bytes", data.len());
+                }
+                Ok(Message::Pong(data)) => {
+                    println!("🏓 Pong received: {} bytes", data.len());
+                }
+                Err(e) => {
+                    eprintln!("❌ WebSocket receive error: {}", e);
+                    break;
+                }
+                _ => {
+                    println!("❓ Other message type received");
+                }
             }
         }
+        println!("📥 WebSocket receive task exiting");
     });
 
     // Wait for any task to complete (indicates connection should close)
@@ -118,6 +165,7 @@ pub async fn handle_connection(stream: tokio::net::TcpStream) -> Result<(), Box<
     }
 
     // Cleanup
+    println!("🧹 Cleaning up...");
     let _ = child.kill();
     let _ = child.wait();
     println!("Connection closed");
