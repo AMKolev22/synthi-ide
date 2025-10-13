@@ -1,4 +1,5 @@
 mod handle_connection;
+mod download;
 
 use tokio::net::TcpListener;
 use handle_connection::handle_connection;
