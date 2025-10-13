@@ -52,13 +52,6 @@ pub async fn download(
     // Build the GCS object store
     // -------------------------
     let bucket_name = "synthi-cloud-storage";
-
-    // Create a temporary file with the service account credentials in the system's temp directory
-    let temp_cred_path = std::env::temp_dir().join(format!("temp_credentials_{}.json", std::process::id()));
-    fs::write(&temp_cred_path, &credentials_json)?;
-    
-    // Set multiple environment variables to force use of service account key
-    std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", temp_cred_path.display().to_string());
     std::env::set_var("GOOGLE_CLOUD_PROJECT", "overview-synti");
     
     // Try to disable Application Default Credentials
@@ -76,12 +69,9 @@ pub async fn download(
         .map_err(|e| format!("Failed to build GCS store: {}", e))?;
 
     let store: Arc<dyn ObjectStore> = Arc::new(store_impl);
-    send_progress_update(&mut progress_tx, "Connected to GCS bucket successfully!").await;
     
     // List objects with workspaces/slug prefix
     let prefix = Path::from(format!("workspaces/{}/", slug.trim_matches('/')));
-    println!("🔍 Searching for objects with prefix: {}", prefix.as_ref());
-    send_progress_update(&mut progress_tx, &format!("Searching in workspaces/{}/ folder...", slug)).await;
     
     let mut list_stream = store.list(Some(&prefix));
     let mut objects: Vec<Path> = Vec::new();
@@ -91,7 +81,7 @@ pub async fn download(
         
         // Skip if doesn't match prefix
         if !location_str.starts_with(prefix.as_ref()) {
-            println!("❌ Skipped (doesn't match prefix): {}", location_str);
+            println!("Skipped (doesn't match prefix): {}", location_str);
             continue;
         }
         
@@ -99,44 +89,32 @@ pub async fn download(
         
         // Skip empty paths (top-level directory marker)
         if stripped.is_empty() {
-            println!("📁 Skipped top-level directory marker: {}", location_str);
+            println!("Skipped top-level directory marker: {}", location_str);
             continue;
         }
         
         // Skip directory markers (paths ending with '/')
         if location_str.ends_with('/') {
-            println!("📁 Skipped directory marker: {}", location_str);
+            println!("Skipped directory marker: {}", location_str);
             continue;
         }
         
         // Additional check: skip objects with size 0 that look like directories
         if meta.size == 0 && stripped.contains('/') && !stripped.contains('.') {
-            println!("📁 Skipped potential directory marker (size 0): {}", location_str);
+            println!("Skipped potential directory marker (size 0): {}", location_str);
             continue;
         }
-        
-        println!("📋 Found object: {} (size: {} bytes)", location_str, meta.size);
         objects.push(meta.location.clone());
-        println!("✅ Added to download list: {}", location_str);
     }
     
     if objects.is_empty() {
-        println!("⚠️ No objects found under folder: {}/", slug);
-        send_progress_update(&mut progress_tx, "No objects found in the specified folder.").await;
         return Err("No objects found in the specified folder".into());
     }
-    
-    println!("📂 Found {} objects to download.", objects.len());
-    send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
 
     // -------------------------
     // Local directory for downloads - Write to /synthi/
     // -------------------------
     let local_dir = PathBuf::from("/synthi").join(slug);
-    
-    // Debug: Show current user and permissions
-    println!("🔍 Current user: {:?}", std::env::var("USER"));
-    println!("🔍 Attempting to create directory: {}", local_dir.display());
     
     // Create the directory structure
     if !local_dir.exists() {
@@ -148,17 +126,15 @@ pub async fn download(
                 eprintln!("   Current working dir: {:?}", std::env::current_dir());
                 format!("Failed to create directory {}: {}", local_dir.display(), e)
             })?;
-        println!("📁 Created local directory: {}", local_dir.display());
+        println!("Created local directory: {}", local_dir.display());
     } else {
-        println!("📁 Directory already exists: {}", local_dir.display());
+        println!("Directory already exists: {}", local_dir.display());
     }
-    
-    send_progress_update(&mut progress_tx, &format!("Downloading to: {}", local_dir.display())).await;
 
     // Download each object
     for (index, object_path) in objects.iter().enumerate() {
         let object_name: &str = object_path.as_ref();
-        println!("📥 Downloading object: {}", object_name);
+        println!("Downloading object: {}", object_name);
         
         // Send animated progress update
         let progress_percent = ((index + 1) as f32 / objects.len() as f32 * 100.0) as u32;
@@ -172,8 +148,6 @@ pub async fn download(
         
         // Additional safety: remove any leading slashes from stripped path
         let stripped_clean = stripped.trim_start_matches('/');
-        
-        println!("🔧 Processing: {} -> {}", object_name, stripped_clean);
         let local_path = local_dir.join(stripped_clean);
         let parent_dir = local_path.parent().ok_or("Invalid path")?;
         
@@ -181,7 +155,7 @@ pub async fn download(
         if !parent_dir.exists() {
             fs::create_dir_all(parent_dir)
                 .map_err(|e| format!("Failed to create directory {}: {}", parent_dir.display(), e))?;
-            println!("📁 Created directory: {}", parent_dir.display());
+            println!("Created directory: {}", parent_dir.display());
         }
 
         // Download the full object into memory then write to disk
@@ -194,17 +168,6 @@ pub async fn download(
             .map_err(|e| format!("Failed to create file {}: {}", local_path.display(), e))?;
         file.write_all(&data)
             .map_err(|e| format!("Failed to write to file {}: {}", local_path.display(), e))?;
-        
-        println!("✅ Saved to: {}", local_path.display());
-        send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", stripped_clean)).await;
     }
-    
-    println!("🎉 Download completed! Files saved to: {}", local_dir.display());
-    send_progress_update(&mut progress_tx, &format!("🎉 Download completed! Files saved to: {}", local_dir.display())).await;
-
-    // Clean up temporary credentials file
-    let _ = fs::remove_file(&temp_cred_path);
-
-    // Return the local directory path so the caller can navigate to it
     Ok(local_dir)
 }
