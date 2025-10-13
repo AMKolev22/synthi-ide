@@ -97,18 +97,23 @@ pub async fn download(
     let mut objects: Vec<Path> = Vec::new();
     while let Some(meta_res) = list_stream.next().await {
         let meta = meta_res?;
-        // Skip directory markers (zero-size objects ending with '/')
-        if meta.size == 0 && meta.location.as_ref().ends_with('/') {
-            println!("📁 Skipped directory marker: {}", meta.location.as_ref());
+        let location_str = meta.location.as_ref();
+        if !location_str.starts_with(prefix.as_ref()) {
+            println!("❌ Skipped (doesn't match prefix): {}", location_str);
             continue;
         }
-        println!("📋 Found object: {}", meta.location.as_ref());
-        if meta.location.as_ref().starts_with(prefix.as_ref()) {
-            objects.push(meta.location.clone());
-            println!("✅ Added to download list: {}", meta.location.as_ref());
-        } else {
-            println!("❌ Skipped (doesn't match prefix): {}", meta.location.as_ref());
+        let stripped = location_str.strip_prefix(prefix.as_ref()).unwrap();
+        if stripped.is_empty() {
+            println!("📁 Skipped top-level directory marker: {}", location_str);
+            continue;
         }
+        if meta.size == 0 && stripped.ends_with('/') {
+            println!("📁 Skipped directory marker: {}", location_str);
+            continue;
+        }
+        println!("📋 Found object: {}", location_str);
+        objects.push(meta.location.clone());
+        println!("✅ Added to download list: {}", location_str);
     }
     
     if objects.is_empty() {
