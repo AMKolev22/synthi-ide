@@ -123,7 +123,7 @@ pub async fn download(
     if objects.is_empty() {
         println!("⚠️ No objects found under folder: {}/", slug);
         send_progress_update(&mut progress_tx, "No objects found in the specified folder.").await;
-        return Ok(());
+        return Err("No objects found in the specified folder".into());
     }
     
     println!("📂 Found {} objects to download.", objects.len());
