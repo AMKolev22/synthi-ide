@@ -1,5 +1,3 @@
-// download_gcs.rs
-// cargo.toml should include: tokio, object_store, futures, serde_json, bytes, tempfile (optional)
 use serde_json::json;
 use std::fs;
 use std::io::Write;
