@@ -27,7 +27,7 @@ async fn send_progress_update(
 pub async fn download(
     slug: &str, 
     mut progress_tx: Option<mpsc::UnboundedSender<String>>
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<PathBuf, Box<dyn std::error::Error>> {
     println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
     send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
     
