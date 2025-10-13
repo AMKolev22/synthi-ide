@@ -116,15 +116,23 @@ pub async fn download(
     send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
 
     // -------------------------
-    // Local directory for downloads (relative to current working directory: e.g., ./<slug>)
+    // Local directory for downloads - Use home directory or temp directory
     // -------------------------
-    let local_base = std::env::current_dir()
-        .map_err(|e| format!("Failed to determine current working directory: {}", e))?;
-    let local_dir = local_base.join(slug);
+    let local_base = dirs::home_dir()
+        .or_else(|| Some(std::env::temp_dir()))
+        .ok_or("Failed to determine a writable directory")?;
+    
+    let downloads_dir = local_base.join("downloads");
+    let local_dir = downloads_dir.join(slug);
+    
+    // Create the directory structure
     if !local_dir.exists() {
-        fs::create_dir_all(&local_dir)?;
+        fs::create_dir_all(&local_dir)
+            .map_err(|e| format!("Failed to create directory {}: {}", local_dir.display(), e))?;
         println!("📁 Created local directory: {}", local_dir.display());
     }
+    
+    send_progress_update(&mut progress_tx, &format!("Downloading to: {}", local_dir.display())).await;
 
     // Download each object
     for (index, object_path) in objects.iter().enumerate() {
@@ -142,23 +150,31 @@ pub async fn download(
             .ok_or_else(|| format!("Failed to strip prefix from: {}", object_name))?;
         let local_path = local_dir.join(stripped);
         let parent_dir = local_path.parent().ok_or("Invalid path")?;
+        
+        // Create parent directories if they don't exist
         if !parent_dir.exists() {
-            fs::create_dir_all(parent_dir)?;
+            fs::create_dir_all(parent_dir)
+                .map_err(|e| format!("Failed to create directory {}: {}", parent_dir.display(), e))?;
             println!("📁 Created directory: {}", parent_dir.display());
         }
 
         // Download the full object into memory then write to disk
-        let get_result = store.get(object_path).await?;
-        let data = get_result.bytes().await?;
-        let mut file = fs::File::create(&local_path)?;
-        file.write_all(&data)?;
+        let get_result = store.get(object_path).await
+            .map_err(|e| format!("Failed to download {}: {}", object_name, e))?;
+        let data = get_result.bytes().await
+            .map_err(|e| format!("Failed to read bytes from {}: {}", object_name, e))?;
+        
+        let mut file = fs::File::create(&local_path)
+            .map_err(|e| format!("Failed to create file {}: {}", local_path.display(), e))?;
+        file.write_all(&data)
+            .map_err(|e| format!("Failed to write to file {}: {}", local_path.display(), e))?;
+        
         println!("✅ Saved to: {}", local_path.display());
-        send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", object_name)).await;
+        send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", stripped)).await;
     }
     
-    // std::env::set_current_dir(&local_dir)?;
-    // println!("📍 Changed working directory to: {}", local_dir.display());
-    // send_progress_update(&mut progress_tx, "🎉 Download completed! Working directory changed.").await;
+    println!("🎉 Download completed! Files saved to: {}", local_dir.display());
+    send_progress_update(&mut progress_tx, &format!("🎉 Download completed! Files saved to: {}", local_dir.display())).await;
 
     // Clean up temporary credentials file
     let _ = fs::remove_file(&temp_cred_path);
