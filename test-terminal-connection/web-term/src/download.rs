@@ -27,7 +27,7 @@ async fn send_progress_update(
 pub async fn download(
     slug: &str, 
     mut progress_tx: Option<mpsc::UnboundedSender<String>>
-) -> Result<PathBuf, Box<dyn std::error::Error>> {
+) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
     println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
     send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
     
@@ -202,14 +202,9 @@ pub async fn download(
     println!("🎉 Download completed! Files saved to: {}", local_dir.display());
     send_progress_update(&mut progress_tx, &format!("🎉 Download completed! Files saved to: {}", local_dir.display())).await;
 
-    // Change current working directory to the downloaded folder
-    std::env::set_current_dir(&local_dir)
-        .map_err(|e| format!("Failed to change directory to {}: {}", local_dir.display(), e))?;
-    println!("📍 Changed working directory to: {}", local_dir.display());
-    send_progress_update(&mut progress_tx, &format!("📍 Working directory changed to: {}", local_dir.display())).await;
-
     // Clean up temporary credentials file
     let _ = fs::remove_file(&temp_cred_path);
 
-    Ok(())
+    // Return the local directory path so the caller can navigate to it
+    Ok(local_dir)
 }
