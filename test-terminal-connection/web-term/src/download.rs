@@ -11,6 +11,7 @@ use object_store::{
     ObjectStore, path::Path,
 };
 use std::sync::Arc;
+use std::collections::HashSet;
 
 // Helper function to send progress updates
 async fn send_progress_update(
@@ -32,6 +33,14 @@ pub async fn download(
     println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
     send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
 
+    // -------------------------
+    // HARD-CODED CREDENTIALS
+    // -------------------------
+    // WARNING: This file contains a placeholder. Replace the fields below with your
+    // actual service account values. Do NOT commit the file to source control.
+    //
+    // Example: paste your private key block inside the private_key string.
+    // If your private key is the multi-line PEM block, keep the newlines exactly.
     let credentials_json = json!({
         "type": "service_account",
         "project_id": "overview-synti",
@@ -45,6 +54,7 @@ pub async fn download(
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/file-uploader-service%40overview-synti.iam.gserviceaccount.com"
     }).to_string();
 
+    // Optional sanity check: ensure valid JSON
     let _value: serde_json::Value = serde_json::from_str(&credentials_json)
         .map_err(|e| format!("Credentials JSON invalid: {}", e))?;
 
@@ -53,22 +63,24 @@ pub async fn download(
     // -------------------------
     let bucket_name = "synthi-cloud-storage"; // replace with your bucket
 
-    // Create a temporary file with the service account credentials
-    let temp_cred_path = format!("temp_credentials_{}.json", std::process::id());
+    // Create a temporary file with the service account credentials in the system's temp directory
+    let temp_cred_path = std::env::temp_dir().join(format!("temp_credentials_{}.json", std::process::id()));
     fs::write(&temp_cred_path, &credentials_json)?;
     
     // Set multiple environment variables to force use of service account key
-    std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", &temp_cred_path);
+    std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", temp_cred_path.display().to_string());
     std::env::set_var("GOOGLE_CLOUD_PROJECT", "overview-synti");
     
+    // Try to disable Application Default Credentials
     std::env::remove_var("GCLOUD_PROJECT");
     std::env::remove_var("CLOUDSDK_CORE_PROJECT");
     
     // Build the GCS object store with explicit service account key
     let mut builder = GoogleCloudStorageBuilder::new();
     builder = builder.with_bucket_name(bucket_name);
-    builder = builder.with_config(GoogleConfigKey::ServiceAccountKey, &credentials_json);
     
+    // Try multiple approaches to force use of service account key
+    builder = builder.with_config(GoogleConfigKey::ServiceAccountKey, &credentials_json);
     
     let store_impl = builder.build()
         .map_err(|e| format!("Failed to build GCS store: {}", e))?;
@@ -107,6 +119,10 @@ pub async fn download(
     
     println!("📂 Found {} objects to download.", objects.len());
     send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
+
+    // -------------------------
+    // Local directory for downloads (user's home directory: e.g., /home/synthi/<slug> for VM user synthi)
+    // -------------------------
     let local_base = std::env::home_dir()
         .ok_or_else(|| "Failed to determine user's home directory")?;
     let local_dir = local_base.join(slug);
@@ -145,13 +161,12 @@ pub async fn download(
         send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", object_name)).await;
     }
 
-    // change working directory to the downloaded folder
+    // Optionally change working directory to the downloaded folder
     std::env::set_current_dir(&local_dir)?;
     println!("📍 Changed working directory to: {}", local_dir.display());
     send_progress_update(&mut progress_tx, "🎉 Download completed! Working directory changed.").await;
 
     // Clean up temporary credentials file
-    let temp_cred_path = format!("temp_credentials_{}.json", std::process::id());
     let _ = fs::remove_file(&temp_cred_path);
 
     Ok(())
