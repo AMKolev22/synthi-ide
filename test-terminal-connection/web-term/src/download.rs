@@ -28,9 +28,6 @@ pub async fn download(
     slug: &str, 
     mut progress_tx: Option<mpsc::UnboundedSender<String>>
 ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
-    println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
-    send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
-    
     let credentials_json = json!({
         "type": "service_account",
         "project_id": "overview-synti",
@@ -52,9 +49,7 @@ pub async fn download(
     // Build the GCS object store
     // -------------------------
     let bucket_name = "synthi-cloud-storage";
-    std::env::set_var("GOOGLE_CLOUD_PROJECT", "overview-synti");
-    
-    // Try to disable Application Default Credentials
+
     std::env::remove_var("GCLOUD_PROJECT");
     std::env::remove_var("CLOUDSDK_CORE_PROJECT");
     
@@ -81,7 +76,6 @@ pub async fn download(
         
         // Skip if doesn't match prefix
         if !location_str.starts_with(prefix.as_ref()) {
-            println!("Skipped (doesn't match prefix): {}", location_str);
             continue;
         }
         
@@ -89,27 +83,28 @@ pub async fn download(
         
         // Skip empty paths (top-level directory marker)
         if stripped.is_empty() {
-            println!("Skipped top-level directory marker: {}", location_str);
+            println!("skipped top-level directory marker: {}", location_str);
             continue;
         }
         
         // Skip directory markers (paths ending with '/')
         if location_str.ends_with('/') {
-            println!("Skipped directory marker: {}", location_str);
+            println!("skipped directory marker: {}", location_str);
             continue;
         }
         
         // Additional check: skip objects with size 0 that look like directories
         if meta.size == 0 && stripped.contains('/') && !stripped.contains('.') {
-            println!("Skipped potential directory marker (size 0): {}", location_str);
             continue;
         }
+        
         objects.push(meta.location.clone());
     }
     
     if objects.is_empty() {
         return Err("No objects found in the specified folder".into());
     }
+    
 
     // -------------------------
     // Local directory for downloads - Write to /synthi/
@@ -120,7 +115,6 @@ pub async fn download(
     if !local_dir.exists() {
         fs::create_dir_all(&local_dir)
             .map_err(|e| {
-                eprintln!("❌ Directory creation failed!");
                 eprintln!("   Path: {}", local_dir.display());
                 eprintln!("   Error: {}", e);
                 eprintln!("   Current working dir: {:?}", std::env::current_dir());
@@ -130,17 +124,13 @@ pub async fn download(
     } else {
         println!("Directory already exists: {}", local_dir.display());
     }
-
+    
     // Download each object
     for (index, object_path) in objects.iter().enumerate() {
         let object_name: &str = object_path.as_ref();
-        println!("Downloading object: {}", object_name);
+        println!("📥 Downloading object: {}", object_name);
         
-        // Send animated progress update
-        let progress_percent = ((index + 1) as f32 / objects.len() as f32 * 100.0) as u32;
-        let progress_bar = "█".repeat((progress_percent / 5) as usize) + &"░".repeat(20 - (progress_percent / 5) as usize);
-        send_progress_update(&mut progress_tx, &format!("Downloading {} ({}/{}): [{}] {}%", 
-            object_name, index + 1, objects.len(), progress_bar, progress_percent)).await;
+        send_progress_update(&mut progress_tx, &format!("Downloading ({}/{})", index + 1, objects.len())).await;
 
         // Construct the local file path (strip workspaces/slug prefix)
         let stripped = object_name.strip_prefix(prefix.as_ref())
@@ -148,6 +138,8 @@ pub async fn download(
         
         // Additional safety: remove any leading slashes from stripped path
         let stripped_clean = stripped.trim_start_matches('/');
+        
+        println!("🔧 Processing: {} -> {}", object_name, stripped_clean);
         let local_path = local_dir.join(stripped_clean);
         let parent_dir = local_path.parent().ok_or("Invalid path")?;
         
@@ -168,6 +160,14 @@ pub async fn download(
             .map_err(|e| format!("Failed to create file {}: {}", local_path.display(), e))?;
         file.write_all(&data)
             .map_err(|e| format!("Failed to write to file {}: {}", local_path.display(), e))?;
+        
+        println!("Saved to: {}", local_path.display());
     }
+    
+
+    // Clean up temporary credentials file
+    let _ = fs::remove_file(&temp_cred_path);
+
+    // Return the local directory path so the caller can navigate to it
     Ok(local_dir)
 }
