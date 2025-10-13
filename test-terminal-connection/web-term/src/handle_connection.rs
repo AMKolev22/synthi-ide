@@ -9,7 +9,7 @@ use tokio_tungstenite::tungstenite::Message;
 
 pub async fn handle_connection(
     stream: tokio::net::TcpStream,
-) -> Result<(), Box<dyn std::error::Error>> {
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let ws_stream = accept_async(stream).await?;
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
