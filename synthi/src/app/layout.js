@@ -1,4 +1,3 @@
-"use client"
 import { Geist, Geist_Mono } from "next/font/google";
 import { Roboto_Slab } from "next/font/google";
 import "./globals.css";
@@ -16,6 +15,10 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const metadata = {
+  title: "Synthi - The IDE That Undestands You.",
+}
 
 export default function RootLayout({ children }) {
   return (
