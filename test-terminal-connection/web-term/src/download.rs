@@ -165,9 +165,6 @@ pub async fn download(
     }
     
 
-    // Clean up temporary credentials file
-    let _ = fs::remove_file(&temp_cred_path);
-
     // Return the local directory path so the caller can navigate to it
     Ok(local_dir)
 }
