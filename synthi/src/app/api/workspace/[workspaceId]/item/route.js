@@ -164,8 +164,10 @@ export async function POST(request, { params }) {
 export async function PUT(request, { params }) {
     const data = await params;
     const workspaceId = data.workspaceId;
-    const filePath = request.body.get('filePath');
-    const newPath = request.body.get('newPath');
+
+    const body = await request.json();
+    const filePath = body.filePath;
+    const newPath = body.newPath;
 
     try {
 
