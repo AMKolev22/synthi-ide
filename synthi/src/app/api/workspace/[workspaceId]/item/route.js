@@ -279,7 +279,9 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
     const data = await params;
     const workspaceId = data.workspaceId;
-    const filePath = request.body.get('filePath');
+    
+    const body = await request.json(); 
+    const filePath = body.filePath;
 
     try {
 

@@ -282,8 +282,7 @@ export const useWorkspace = (slug) => {
      * @param {Object} item - The file or folder to delete.
      */
     const handleDelete = useCallback(async (item) => {
-        const type = item.type;
-        const confirmMessage = item.type === 'folder'
+        const confirmMessage = item.isFolder
            ? `Are you sure you want to delete the folder "${item.name}" and all its contents? This action cannot be undone.`
             : `Are you sure you want to delete the file "${item.name}"? This action cannot be undone.`;
 
