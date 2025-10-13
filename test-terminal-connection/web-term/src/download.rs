@@ -11,7 +11,6 @@ use object_store::{
     ObjectStore, path::Path,
 };
 use std::sync::Arc;
-use std::collections::HashSet;
 
 // Helper function to send progress updates
 async fn send_progress_update(
@@ -33,14 +32,6 @@ pub async fn download(
     println!("🚀 Starting download from GCP bucket for folder: workspaces/{}", slug);
     send_progress_update(&mut progress_tx, &format!("Starting download from workspaces/{} folder...", slug)).await;
 
-    // -------------------------
-    // HARD-CODED CREDENTIALS
-    // -------------------------
-    // WARNING: This file contains a placeholder. Replace the fields below with your
-    // actual service account values. Do NOT commit the file to source control.
-    //
-    // Example: paste your private key block inside the private_key string.
-    // If your private key is the multi-line PEM block, keep the newlines exactly.
     let credentials_json = json!({
         "type": "service_account",
         "project_id": "overview-synti",
@@ -54,7 +45,6 @@ pub async fn download(
         "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/file-uploader-service%40overview-synti.iam.gserviceaccount.com"
     }).to_string();
 
-    // Optional sanity check: ensure valid JSON
     let _value: serde_json::Value = serde_json::from_str(&credentials_json)
         .map_err(|e| format!("Credentials JSON invalid: {}", e))?;
 
@@ -71,16 +61,14 @@ pub async fn download(
     std::env::set_var("GOOGLE_APPLICATION_CREDENTIALS", &temp_cred_path);
     std::env::set_var("GOOGLE_CLOUD_PROJECT", "overview-synti");
     
-    // Try to disable Application Default Credentials
     std::env::remove_var("GCLOUD_PROJECT");
     std::env::remove_var("CLOUDSDK_CORE_PROJECT");
     
     // Build the GCS object store with explicit service account key
     let mut builder = GoogleCloudStorageBuilder::new();
     builder = builder.with_bucket_name(bucket_name);
-    
-    // Try multiple approaches to force use of service account key
     builder = builder.with_config(GoogleConfigKey::ServiceAccountKey, &credentials_json);
+    
     
     let store_impl = builder.build()
         .map_err(|e| format!("Failed to build GCS store: {}", e))?;
@@ -119,14 +107,12 @@ pub async fn download(
     
     println!("📂 Found {} objects to download.", objects.len());
     send_progress_update(&mut progress_tx, &format!("Found {} objects to download", objects.len())).await;
-
-    // -------------------------
-    // Local directory for downloads
-    // -------------------------
-    let local_dir = slug;
-    if !std::path::Path::new(local_dir).exists() {
-        fs::create_dir_all(local_dir)?;
-        println!("📁 Created local directory: {}", local_dir);
+    let local_base = std::env::home_dir()
+        .ok_or_else(|| "Failed to determine user's home directory")?;
+    let local_dir = local_base.join(slug);
+    if !local_dir.exists() {
+        fs::create_dir_all(&local_dir)?;
+        println!("📁 Created local directory: {}", local_dir.display());
     }
 
     // Download each object
@@ -142,9 +128,8 @@ pub async fn download(
 
         // Construct the local file path (strip workspaces/slug prefix)
         let stripped = object_name.strip_prefix(prefix.as_ref())
-            .unwrap_or(object_name);
-        let local_path_str = format!("{}/{}", local_dir, stripped);
-        let local_path = PathBuf::from(&local_path_str);
+            .ok_or_else(|| format!("Failed to strip prefix from: {}", object_name))?;
+        let local_path = local_dir.join(stripped);
         let parent_dir = local_path.parent().ok_or("Invalid path")?;
         if !parent_dir.exists() {
             fs::create_dir_all(parent_dir)?;
@@ -160,9 +145,9 @@ pub async fn download(
         send_progress_update(&mut progress_tx, &format!("✅ Downloaded: {}", object_name)).await;
     }
 
-    // Optionally change working directory to the downloaded folder
-    std::env::set_current_dir(local_dir)?;
-    println!("📍 Changed working directory to: {}", local_dir);
+    // change working directory to the downloaded folder
+    std::env::set_current_dir(&local_dir)?;
+    println!("📍 Changed working directory to: {}", local_dir.display());
     send_progress_update(&mut progress_tx, "🎉 Download completed! Working directory changed.").await;
 
     // Clean up temporary credentials file
