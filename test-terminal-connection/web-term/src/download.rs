@@ -88,20 +88,34 @@ pub async fn download(
     while let Some(meta_res) = list_stream.next().await {
         let meta = meta_res?;
         let location_str = meta.location.as_ref();
+        
+        // Skip if doesn't match prefix
         if !location_str.starts_with(prefix.as_ref()) {
             println!("❌ Skipped (doesn't match prefix): {}", location_str);
             continue;
         }
+        
         let stripped = location_str.strip_prefix(prefix.as_ref()).unwrap();
+        
+        // Skip empty paths (top-level directory marker)
         if stripped.is_empty() {
             println!("📁 Skipped top-level directory marker: {}", location_str);
             continue;
         }
-        if meta.size == 0 && stripped.ends_with('/') {
+        
+        // Skip directory markers (paths ending with '/')
+        if location_str.ends_with('/') {
             println!("📁 Skipped directory marker: {}", location_str);
             continue;
         }
-        println!("📋 Found object: {}", location_str);
+        
+        // Additional check: skip objects with size 0 that look like directories
+        if meta.size == 0 && stripped.contains('/') && !stripped.contains('.') {
+            println!("📁 Skipped potential directory marker (size 0): {}", location_str);
+            continue;
+        }
+        
+        println!("📋 Found object: {} (size: {} bytes)", location_str, meta.size);
         objects.push(meta.location.clone());
         println!("✅ Added to download list: {}", location_str);
     }
@@ -120,11 +134,23 @@ pub async fn download(
     // -------------------------
     let local_dir = PathBuf::from("/synthi").join(slug);
     
+    // Debug: Show current user and permissions
+    println!("🔍 Current user: {:?}", std::env::var("USER"));
+    println!("🔍 Attempting to create directory: {}", local_dir.display());
+    
     // Create the directory structure
     if !local_dir.exists() {
         fs::create_dir_all(&local_dir)
-            .map_err(|e| format!("Failed to create directory {}: {}", local_dir.display(), e))?;
+            .map_err(|e| {
+                eprintln!("❌ Directory creation failed!");
+                eprintln!("   Path: {}", local_dir.display());
+                eprintln!("   Error: {}", e);
+                eprintln!("   Current working dir: {:?}", std::env::current_dir());
+                format!("Failed to create directory {}: {}", local_dir.display(), e)
+            })?;
         println!("📁 Created local directory: {}", local_dir.display());
+    } else {
+        println!("📁 Directory already exists: {}", local_dir.display());
     }
     
     send_progress_update(&mut progress_tx, &format!("Downloading to: {}", local_dir.display())).await;
