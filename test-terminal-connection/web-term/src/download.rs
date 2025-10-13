@@ -97,8 +97,8 @@ pub async fn download(
     let mut objects: Vec<Path> = Vec::new();
     while let Some(meta_res) = list_stream.next().await {
         let meta = meta_res?;
-        // Skip directory markers (common prefixes represented as zero-size objects)
-        if meta.size == 0 {
+        // Skip directory markers (zero-size objects ending with '/')
+        if meta.size == 0 && meta.location.as_ref().ends_with('/') {
             println!("📁 Skipped directory marker: {}", meta.location.as_ref());
             continue;
         }
