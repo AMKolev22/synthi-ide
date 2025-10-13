@@ -13,8 +13,6 @@ pub async fn handle_connection(
     let ws_stream = accept_async(stream).await?;
     let (mut ws_sender, mut ws_receiver) = ws_stream.split();
 
-    println!("✅ WebSocket connection established");
-
     // Create PTY
     let pty_system = native_pty_system();
     let pair = pty_system.openpty(PtySize {
@@ -59,7 +57,7 @@ pub async fn handle_connection(
     let (input_tx, mut input_rx) = mpsc::unbounded_channel::<Vec<u8>>();
     let (progress_tx, mut progress_rx) = mpsc::unbounded_channel::<String>();
 
-    // Task 1: Read from PTY (blocking) and send to channel
+    // Read from PTY (blocking) and send to channel
     let read_task = tokio::task::spawn_blocking(move || {
         let mut buf = [0u8; 8192];
         loop {
@@ -76,7 +74,7 @@ pub async fn handle_connection(
                     }
                 }
                 Err(e) => {
-                    eprintln!("❌ PTY read error: {}", e);
+                    eprintln!("PTY read error: {}", e);
                     break;
                 }
             }
@@ -84,20 +82,19 @@ pub async fn handle_connection(
         println!("📖 PTY read task exiting");
     });
 
-    // Task 2: Write to PTY (blocking) from channel
+    // Write to PTY (blocking) from channel
     let write_task = tokio::task::spawn_blocking(move || {
         while let Some(data) = input_rx.blocking_recv() {
-            println!("✍️  PTY write: {} bytes", data.len());
+            println!("PTY write: {} bytes", data.len());
             if let Err(e) = writer.write_all(&data) {
-                eprintln!("❌ PTY write error: {}", e);
+                eprintln!("PTY write error: {}", e);
                 break;
             }
             if let Err(e) = writer.flush() {
-                eprintln!("❌ PTY flush error: {}", e);
+                eprintln!("PTY flush error: {}", e);
                 break;
             }
         }
-        println!("✍️  PTY write task exiting");
     });
 
     // Forward PTY output to WebSocket
@@ -106,9 +103,9 @@ pub async fn handle_connection(
             tokio::select! {
                 data = output_rx.recv() => {
                     if let Some(data) = data {
-                        println!("📤 Sending to WebSocket: {} bytes", data.len());
+                        println!("Sending to WebSocket: {} bytes", data.len());
                         if let Err(e) = ws_sender.send(Message::Binary(data)).await {
-                            eprintln!("❌ WebSocket send error: {}", e);
+                            eprintln!("WebSocket send error: {}", e);
                             break;
                         }
                     } else {
@@ -117,9 +114,9 @@ pub async fn handle_connection(
                 }
                 progress_msg = progress_rx.recv() => {
                     if let Some(msg) = progress_msg {
-                        println!("📊 Sending progress: {}", msg);
+                        println!("Sending progress: {}", msg);
                         if let Err(e) = ws_sender.send(Message::Text(msg)).await {
-                            eprintln!("❌ WebSocket progress send error: {}", e);
+                            eprintln!("WebSocket progress send error: {}", e);
                             break;
                         }
                     } else {
@@ -128,15 +125,14 @@ pub async fn handle_connection(
                 }
             }
         }
-        println!("📤 WebSocket send task exiting");
+        println!("WebSocket send task exiting");
     });
 
-    // Forward WebSocket input to PTY and handle download
     let ws_recv_task = tokio::spawn(async move {
         while let Some(msg) = ws_receiver.next().await {
             match msg {
                 Ok(Message::Binary(data)) => {
-                    println!("📥 Received binary message: {} bytes", data.len());
+                    println!("Received binary message: {} bytes", data.len());
 
                     // Debug: Show what was typed (if valid UTF-8)
                     if let Ok(text) = String::from_utf8(data.clone()) {
@@ -156,41 +152,41 @@ pub async fn handle_connection(
                     }
 
                     if input_tx.send(data).is_err() {
-                        println!("📥 Input channel closed");
+                        println!("Input channel closed");
                         break;
                     }
                 }
                 Ok(Message::Text(text)) => {
-                    println!("📥 Received text message: {:?}", text);
+                    println!("Received text message: {:?}", text);
 
                     // Auto-trigger download with the received text as slug
                     let slug = text.trim();
                     if !slug.is_empty() {
-                        println!("🚀 Auto-downloading from GCP bucket for slug: {}", slug);
+                        println!("Auto-downloading from GCP bucket for slug: {}", slug);
                         match download(slug, Some(progress_tx.clone())).await {
                             Ok(download_path) => {
                                 // Send cd command to the shell to navigate to the downloaded directory
                                 let cd_command = format!("cd {}\n", download_path.display());
-                                println!("📂 Sending cd command: {}", cd_command.trim());
+                                println!("Sending cd command: {}", cd_command.trim());
                                 
                                 if input_tx.send(cd_command.as_bytes().to_vec()).is_err() {
-                                    println!("📥 Input channel closed");
+                                    println!("Input channel closed");
                                     break;
                                 }
                                 
                                 // Send a success message
                                 let success_msg = format!(
-                                    "\r\n✅ Download completed! Now in: {}\r\n",
+                                    "\r\nDownload completed! Now in: {}\r\n",
                                     download_path.display()
                                 );
                                 tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
                                 if input_tx.send(success_msg.as_bytes().to_vec()).is_err() {
-                                    println!("📥 Input channel closed");
+                                    println!("Input channel closed");
                                     break;
                                 }
                             }
                             Err(e) => {
-                                let error_msg = format!("\r\n❌ Download failed: {}\r\n", e);
+                                let error_msg = format!("\r\nDownload failed: {}\r\n", e);
                                 if input_tx.send(error_msg.as_bytes().to_vec()).is_err() {
                                     println!("📥 Input channel closed");
                                     break;
@@ -200,25 +196,25 @@ pub async fn handle_connection(
                     }
                 }
                 Ok(Message::Close(frame)) => {
-                    println!("🔴 Close message received: {:?}", frame);
+                    println!("Close message received: {:?}", frame);
                     break;
                 }
                 Ok(Message::Ping(data)) => {
-                    println!("🏓 Ping received: {} bytes", data.len());
+                    println!("Ping received: {} bytes", data.len());
                 }
                 Ok(Message::Pong(data)) => {
-                    println!("🏓 Pong received: {} bytes", data.len());
+                    println!("Pong received: {} bytes", data.len());
                 }
                 Err(e) => {
-                    eprintln!("❌ WebSocket receive error: {}", e);
+                    eprintln!("WebSocket receive error: {}", e);
                     break;
                 }
                 _ => {
-                    println!("❓ Other message type received");
+                    println!("Other message type received");
                 }
             }
         }
-        println!("📥 WebSocket receive task exiting");
+        println!("WebSocket receive task exiting");
     });
 
     // Wait for any task to complete (indicates connection should close)
@@ -230,7 +226,6 @@ pub async fn handle_connection(
     }
 
     // Cleanup
-    println!("🧹 Cleaning up...");
     let _ = child.kill();
     let _ = child.wait();
     println!("Connection closed");
