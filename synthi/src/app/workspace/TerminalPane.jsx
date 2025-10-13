@@ -21,7 +21,7 @@ export default function TerminalPane() {
       const { FitAddon } = await import('xterm-addon-fit');
 
       term = new Terminal({
-        convertEol: false,
+        convertEol: true,
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         theme: { background: '#1e1e1e', foreground: '#d4d4d4' },
         cursorBlink: true,
@@ -35,8 +35,7 @@ export default function TerminalPane() {
       term.open(containerRef.current);
       fitAddon.fit();
 
-      // Open WebSocket to Rust backend (removed /terminal path)
-      ws = new WebSocket('ws://192.168.100.104:8080');
+      ws = new WebSocket('ws://lumpish-undevoutly-sonja.ngrok-free.dev');
       wsRef.current = ws;
 
       ws.binaryType = 'arraybuffer'; // Handle binary data
