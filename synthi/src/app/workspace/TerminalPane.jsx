@@ -8,15 +8,15 @@ export default function TerminalPane() {
   const initializedRef = useRef(false);
 
   useEffect(() => {
+    // Prevent multiple initializations
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+
     let term;
     let fitAddon;
     let ws;
 
     const init = async () => {
-      // Prevent multiple initializations
-      if (initializedRef.current) return;
-      initializedRef.current = true;
-
       const { Terminal } = await import('xterm');
       const { FitAddon } = await import('xterm-addon-fit');
 
@@ -37,7 +37,6 @@ export default function TerminalPane() {
 
       ws = new WebSocket('ws://lumpish-undevoutly-sonja.ngrok-free.dev');
       wsRef.current = ws;
-
       ws.binaryType = 'arraybuffer'; // Handle binary data
 
       ws.onopen = () => {
@@ -59,6 +58,7 @@ export default function TerminalPane() {
       };
 
       ws.onerror = (error) => {
+        term.write('\r\n\x1b[31mWebSocket connection error. Terminal unavailable.\x1b[0m\r\n');
         console.error('WebSocket error:', error);
         console.error('WebSocket readyState:', ws.readyState);
         console.error('WebSocket url:', ws.url);
@@ -70,8 +70,15 @@ export default function TerminalPane() {
         console.log('Close reason:', event.reason);
         console.log('Was clean:', event.wasClean);
       };
+      
+      let isResizing = false;
+      let resizeTimeout = null;
+
       // Send user input to backend
       term.onData((data) => {
+        // Don't send data while resizing
+        if (isResizing) return;
+
         if (ws.readyState === WebSocket.OPEN) {
           // Convert string to Uint8Array for binary transmission
           const encoder = new TextEncoder();
@@ -79,26 +86,52 @@ export default function TerminalPane() {
         }
       });
 
-      // Handle terminal resize
+      // Debounced resize handler
       const handleResize = () => {
-        if (fitAddon && term) {
-          fitAddon.fit();
-          // Optionally send new size to backend
-          const { cols, rows } = term;
-          console.log(`Terminal resized: ${cols}x${rows}`);
-        }
+        if (resizeTimeout) clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (fitAddon && term && containerRef.current) {
+            try {
+              fitAddon.fit();
+              const { cols, rows } = term;
+              console.log(`Terminal resized: ${cols}x${rows}`);
+            } catch (e) {
+              console.error('Resize error:', e);
+            }
+          }
+        }, 100); // 100ms debounce
       };
 
-      // Use ResizeObserver for better resize detection
       const resizeObserver = new ResizeObserver(() => {
-        handleResize();
+        // Use requestAnimationFrame to batch resize events
+        requestAnimationFrame(() => {
+          handleResize();
+        });
       });
-
       if (containerRef.current) {
         resizeObserver.observe(containerRef.current);
       }
 
       window.addEventListener('resize', handleResize);
+      
+      // Listen for resize events to disable input only while dragging
+      const handleResizeStart = () => {
+        isResizing = true;
+      };
+      const handleResizeEnd = () => {
+        isResizing = false;
+      };
+
+      document.addEventListener('pointerdown', (e) => {
+        if (e.target?.closest('[data-resizable-handle]')) {
+          handleResizeStart();
+        }
+      });
+      document.addEventListener('pointerup', handleResizeEnd);
+      document.addEventListener('pointercancel', handleResizeEnd);
+
+      // Initial fit after a short delay to ensure DOM is ready
+      setTimeout(() => handleResize(), 100);
 
       // Store for cleanup
       termRef.current = { term, fitAddon, handleResize, resizeObserver };
@@ -107,13 +140,10 @@ export default function TerminalPane() {
     init();
 
     return () => {
-      initializedRef.current = false;
       if (termRef.current) {
         const { term, handleResize, resizeObserver } = termRef.current;
         window.removeEventListener('resize', handleResize);
-        if (resizeObserver) {
-          resizeObserver.disconnect();
-        }
+        if (resizeObserver) resizeObserver.disconnect();
         if (term) term.dispose();
       }
       if (wsRef.current) {

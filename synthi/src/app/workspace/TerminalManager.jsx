@@ -94,21 +94,21 @@ export default function TerminalManager({ visible, onCloseAll }) {
 
   if (!visible) return null;
   const body = (
-    <div className="bg-[#1e1e1e]" style={{ height: '208px' }}>
+    <div className="bg-[#1e1e1e] flex-1 overflow-hidden">
       {terminals.length === 0 ? (
         <div className="h-full flex items-center justify-center text-xs text-gray-400">No terminals</div>
       ) : (
-        terminals.filter(t => t.id === activeId).map(t => (
-          <div key={t.id} className="h-full w-full">
-            <TerminalPane key={t.id} />
+        terminals.find(t => t.id === activeId) && (
+          <div className="h-full w-full">
+            <TerminalPane key={activeId} />
           </div>
-        ))
+        )
       )}
     </div>
   );
 
   return (
-    <div className="border-t border-[#2a2a2a] bg-[#1e1e1e]">
+    <div className="border-t border-[#2a2a2a] bg-[#1e1e1e] h-full flex flex-col">
       {header}
       {body}
     </div>

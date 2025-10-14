@@ -153,8 +153,12 @@ const EditorPanel = ({
                 {/* Terminal Panel */}
                 {showTerminal && (
                     <>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel defaultSize={30} minSize={15}>
+                        <ResizableHandle 
+                            withHandle 
+                            className="!pointer-events-auto z-50"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        <ResizablePanel defaultSize={30} minSize={15} >
                             <TerminalManagerDyn visible={true} onCloseAll={() => setShowTerminal(false)} />
                         </ResizablePanel>
                     </>
