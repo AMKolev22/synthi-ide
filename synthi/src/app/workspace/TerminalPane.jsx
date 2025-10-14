@@ -153,7 +153,7 @@ export default function TerminalPane() {
   }, []);
 
   return (
-    <div className="h-full w-full bg-[#1e1e1e]">
+    <div className="h-full w-full bg-[#1e1e1e] overflow-hidden">
       <div ref={containerRef} className="h-full w-full" />
     </div>
   );

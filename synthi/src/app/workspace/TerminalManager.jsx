@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Button } from '@/components/ui/button';
-import { SplitSquareHorizontal, Plus, Trash2, X, Dock } from 'lucide-react';
+import { SplitSquareHorizontal, Plus, Trash2, X } from 'lucide-react';
 
 const TerminalPane = dynamic(() => import('./TerminalPane.jsx'), { ssr: false });
 
@@ -19,7 +18,7 @@ export default function TerminalManager({ visible, onCloseAll }) {
       setTerminals([{ id: 'term-1', label: 'Terminal 1', split: false }]);
       setActiveId('term-1');
     }
-  }, [visible]);
+  }, [visible, terminals.length]);
 
   const addTerminal = () => {
     const nextIndex = terminals.length + 1;
@@ -89,20 +88,32 @@ export default function TerminalManager({ visible, onCloseAll }) {
       </div>
     </div>
   );
-
-  // Removed dragging logic per request
-
+  
   if (!visible) return null;
   const body = (
     <div className="bg-[#1e1e1e] flex-1 overflow-hidden">
       {terminals.length === 0 ? (
         <div className="h-full flex items-center justify-center text-xs text-gray-400">No terminals</div>
       ) : (
-        terminals.find(t => t.id === activeId) && (
-          <div className="h-full w-full">
-            <TerminalPane key={activeId} />
-          </div>
-        )
+        <div className="h-full w-full relative">
+          {terminals.map(t => (
+            <div
+              key={t.id}
+              className={`absolute inset-0 ${t.id === activeId ? 'z-10' : 'z-0'}`}
+              style={{ 
+                visibility: t.id === activeId ? 'visible' : 'hidden',
+                pointerEvents: t.id === activeId ? 'auto' : 'none'
+              }}
+            >
+              <div className={`h-full w-full ${t.split ? 'grid grid-cols-2 gap-0' : ''}`}>
+                <TerminalPane key={`${t.id}-main`} terminalId={t.id} paneSide="main" />
+                {t.split && (
+                  <TerminalPane key={`${t.id}-split`} terminalId={t.id} paneSide="split" />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -114,5 +125,3 @@ export default function TerminalManager({ visible, onCloseAll }) {
     </div>
   );
 }
-
-
