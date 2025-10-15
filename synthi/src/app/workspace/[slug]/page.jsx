@@ -90,13 +90,13 @@ export default function EditorPage({ params }) {
                 {treeOnRight? (
                     <>
                         {EditorPanelComponent}
-                        <ResizableHandle withHandle />
+                        <ResizableHandle withHandle className="w-1 bg-[#545454] hover:bg-[#007acc] transition-colors" />
                         {FileTreePanel}
                     </>
                 ) : (
                     <>
                         {FileTreePanel}
-                        <ResizableHandle withHandle />
+                        <ResizableHandle withHandle className="w-0.5 bg-[#545454] hover:bg-[#007acc] transition-colors" />
                         {EditorPanelComponent}
                     </>
                 )}

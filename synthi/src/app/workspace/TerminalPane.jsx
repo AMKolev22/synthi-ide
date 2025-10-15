@@ -1,5 +1,5 @@
-'use client';
-import React, { useEffect, useRef } from 'react';
+"use client";
+import React, { useEffect, useRef } from "react";
 
 export default function TerminalPane() {
   const containerRef = useRef(null);
@@ -15,19 +15,20 @@ export default function TerminalPane() {
     let term;
     let fitAddon;
     let ws;
+    let isResizing = false;
+    let resizeTimeout = null;
 
     const init = async () => {
-      const { Terminal } = await import('xterm');
-      const { FitAddon } = await import('xterm-addon-fit');
+      const { Terminal } = await import("xterm");
+      const { FitAddon } = await import("xterm-addon-fit");
 
       term = new Terminal({
         convertEol: true,
-        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-        theme: { background: '#1e1e1e', foreground: '#d4d4d4' },
+        fontFamily:
+          "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+        theme: { background: "#1e1e1e", foreground: "#d4d4d4" },
         cursorBlink: true,
         allowTransparency: false,
-        cols: 80,
-        rows: 24,
       });
 
       fitAddon = new FitAddon();
@@ -35,12 +36,12 @@ export default function TerminalPane() {
       term.open(containerRef.current);
       fitAddon.fit();
 
-      ws = new WebSocket('ws://lumpish-undevoutly-sonja.ngrok-free.dev');
+      ws = new WebSocket("ws://192.168.68.103:8080"   );
       wsRef.current = ws;
-      ws.binaryType = 'arraybuffer'; // Handle binary data
+      ws.binaryType = "arraybuffer"; // Handle binary data
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log("WebSocket connected");
         // Optionally send initial terminal size
         const { cols, rows } = term;
         console.log(`Terminal size: ${cols}x${rows}`);
@@ -52,27 +53,26 @@ export default function TerminalPane() {
           // Convert ArrayBuffer to Uint8Array to string
           const uint8Array = new Uint8Array(event.data);
           term.write(uint8Array);
-        } else if (typeof event.data === 'string') {
+        } else if (typeof event.data === "string") {
           term.write(event.data);
         }
       };
 
       ws.onerror = (error) => {
-        term.write('\r\n\x1b[31mWebSocket connection error. Terminal unavailable.\x1b[0m\r\n');
-        console.error('WebSocket error:', error);
-        console.error('WebSocket readyState:', ws.readyState);
-        console.error('WebSocket url:', ws.url);
+        term.write(
+          "\r\n\x1b[31mWebSocket connection error. Terminal unavailable.\x1b[0m\r\n"
+        );
+        console.error("WebSocket error:", error);
+        console.error("WebSocket readyState:", ws.readyState);
+        console.error("WebSocket url:", ws.url);
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket closed');
-        console.log('Close code:', event.code);
-        console.log('Close reason:', event.reason);
-        console.log('Was clean:', event.wasClean);
+        console.log("WebSocket closed");
+        console.log("Close code:", event.code);
+        console.log("Close reason:", event.reason);
+        console.log("Was clean:", event.wasClean);
       };
-      
-      let isResizing = false;
-      let resizeTimeout = null;
 
       // Send user input to backend
       term.onData((data) => {
@@ -96,7 +96,7 @@ export default function TerminalPane() {
               const { cols, rows } = term;
               console.log(`Terminal resized: ${cols}x${rows}`);
             } catch (e) {
-              console.error('Resize error:', e);
+              console.error("Resize error:", e);
             }
           }
         }, 100); // 100ms debounce
@@ -112,8 +112,8 @@ export default function TerminalPane() {
         resizeObserver.observe(containerRef.current);
       }
 
-      window.addEventListener('resize', handleResize);
-      
+      window.addEventListener("resize", handleResize);
+
       // Listen for resize events to disable input only while dragging
       const handleResizeStart = () => {
         isResizing = true;
@@ -122,13 +122,13 @@ export default function TerminalPane() {
         isResizing = false;
       };
 
-      document.addEventListener('pointerdown', (e) => {
-        if (e.target?.closest('[data-resizable-handle]')) {
+      document.addEventListener("pointerdown", (e) => {
+        if (e.target?.closest("[data-resizable-handle]")) {
           handleResizeStart();
         }
       });
-      document.addEventListener('pointerup', handleResizeEnd);
-      document.addEventListener('pointercancel', handleResizeEnd);
+      document.addEventListener("pointerup", handleResizeEnd);
+      document.addEventListener("pointercancel", handleResizeEnd);
 
       // Initial fit after a short delay to ensure DOM is ready
       setTimeout(() => handleResize(), 100);
@@ -142,7 +142,7 @@ export default function TerminalPane() {
     return () => {
       if (termRef.current) {
         const { term, handleResize, resizeObserver } = termRef.current;
-        window.removeEventListener('resize', handleResize);
+        window.removeEventListener("resize", handleResize);
         if (resizeObserver) resizeObserver.disconnect();
         if (term) term.dispose();
       }
