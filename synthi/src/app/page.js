@@ -546,7 +546,7 @@ const handleSubmit = async () => {
               rel="noopener noreferrer"
               className="text-[#58A4B0] hover:text-[#327464] transition-colors duration-300 font-medium"
             >
-              Alexander Kolev
+              Aleksandar Kolev & More
             </a>
           </p>
         </div>
