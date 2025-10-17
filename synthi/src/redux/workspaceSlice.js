@@ -7,6 +7,7 @@ import {
     findFileInTree,
     findFolderInTree,
     getFileLanguage,
+    getItemPathInBucket,
 } from '@/utils/fileUtils'; 
 
 // --- Initial State and Utilities ---
@@ -50,7 +51,7 @@ export const saveFileContentThunk = createAsyncThunk(
         const state = getState().workspace;
         const { activeFile, currentContent, slug } = state;
 
-        if (!activeFile || currentContent === state.savedContent) { // FIX: Changed | to ||
+        if (!activeFile || currentContent === state.savedContent) {
             return;
         }
 
@@ -81,7 +82,7 @@ export const selectFileThunk = createAsyncThunk(
             return { file, content, fromCache: false };
         }
 
-        return { file, content: file.content || '', fromCache: false }; // FIX: Changed | to ||
+        return { file, content: file.content || '', fromCache: false };
     }
 );
 
@@ -158,9 +159,9 @@ export const handleRenameItemThunk = createAsyncThunk(
             throw new Error('New name contains invalid characters.');
         }
 
-        const newPath = item.path.split('/').slice(0, -1).concat(newName).join('/') + (item.type === 'folder'? '/' : '');
+        const newPath = item.path.split('/').slice(0, -1).concat(newName).join('/') + (item.isFolder ? '/' : '');
         
-        await api.renameItem(slug, item.path, newPath);
+        await api.renameItem(slug, getItemPathInBucket(item), newPath);
 
         // Perform complex state update in reducer/sync action
         dispatch(renameItemStateUpdate({ item, newName, newPath }));
@@ -184,10 +185,11 @@ export const deleteItemThunk = createAsyncThunk(
         if (!window.confirm(confirmMessage)) {
             return { deleted: false };
         }
+        const itemPath = getItemPathInBucket(item);
 
-        await api.deleteItem(state.slug, item.path);
+        await api.deleteItem(state.slug, itemPath);
         
-        return { deleted: true, path: item.path };
+        return { deleted: true, path: itemPath };
     }
 );
 

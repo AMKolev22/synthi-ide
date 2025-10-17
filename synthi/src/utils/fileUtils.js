@@ -44,10 +44,10 @@ export const getFileLanguage = (fileName) => {
  */
 export const findFileAndUpdate = (currentFiles, targetFile, newContent) => {
     return currentFiles.map(item => {
-        if (item.type === 'file' && item.path === targetFile.path) {
+        if (!item.isFolder && item.path === targetFile.path) {
             return {...item, content: newContent };
         }
-        if (item.type === 'folder' && item.children) {
+        if (item.isFolder && item.children) {
             return {...item, children: findFileAndUpdate(item.children, targetFile, newContent) };
         }
         return item;
@@ -63,10 +63,10 @@ export const findFileAndUpdate = (currentFiles, targetFile, newContent) => {
  */
 export const findFirstFile = (nodes) => {
     for (const node of nodes) {
-        if (node.type === 'file') {
+        if (!node.isFolder) {
             return node;
         }
-        if (node.type === 'folder' && node.children) {
+        if (node.isFolder && node.children) {
             const found = findFirstFile(node.children);
             if (found) return found;
         }
@@ -84,10 +84,10 @@ export const findFirstFile = (nodes) => {
  */
 export const findFileInTree = (nodes, fileName) => {
     for (const node of nodes) {
-        if (node.type === 'file' && node.name === fileName) {
+        if (!node.isFolder && node.name === fileName) {
             return node;
         }
-        if (node.type === 'folder' && node.children) {
+        if (node.isFolder && node.children) {
             const found = findFileInTree(node.children, fileName);
             if (found) return found;
         }
@@ -104,13 +104,18 @@ export const findFileInTree = (nodes, fileName) => {
  */
 export const findFolderInTree = (nodes, folderName) => {
     for (const node of nodes) {
-        if (node.type === 'folder' && node.name === folderName) {
+        if (node.isFolder && node.name === folderName) {
             return node;
         }
-        if (node.type === 'folder' && node.children) {
+        if (node.isFolder && node.children) {
             const found = findFolderInTree(node.children, folderName);
             if (found) return found;
         }
     }
     return null;
 };
+
+
+export const getItemPathInBucket = (item) => {
+    return item.path + (item.isFolder ? '/' : '');
+}

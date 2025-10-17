@@ -56,20 +56,20 @@ export const api = {
         return handleResponse(response);
     },
 
-    renameItem: async (slug, filePath, newPath) => {
+    renameItem: async (slug, itemPath, newPath) => {
         const response = await fetch(`/api/workspace/${slug}/item`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filePath, newPath }),
+            body: JSON.stringify({ itemPath, newPath }),
         });
         return handleResponse(response);
     },
 
-    deleteItem: async (slug, filePath) => {
+    deleteItem: async (slug, itemPath) => {
         const response = await fetch(`/api/workspace/${slug}/item`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filePath }),
+            body: JSON.stringify({ itemPath }),
         });
         return handleResponse(response);
     },
