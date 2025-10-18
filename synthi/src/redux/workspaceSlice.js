@@ -175,7 +175,7 @@ export const handleRenameItemThunk = createAsyncThunk(
 // 6. Delete Item (Mutation)
 export const deleteItemThunk = createAsyncThunk(
     'workspace/deleteItem',
-    async (item, { getState }) => {
+    async (item, { dispatch, getState }) => {
         const state = getState().workspace;
         
         const confirmMessage = item.isFolder
@@ -188,6 +188,8 @@ export const deleteItemThunk = createAsyncThunk(
         const itemPath = getItemPathInBucket(item);
 
         await api.deleteItem(state.slug, itemPath);
+        
+        await dispatch(fetchFilesThunk(state.slug));
         
         return { deleted: true, path: itemPath };
     }
