@@ -1,6 +1,16 @@
 // src/app/FileTree.jsx
 "use client"
 import { useState, useRef, useEffect } from 'react';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { selectFilesTree, selectActiveFile, handleCreateItemThunk, handleRenameItemThunk, deleteItemThunk, selectFileThunk } from '@/redux/workspaceSlice';
+import { 
+    selectUiActionState, 
+    setUiActionName, 
+    cancelUiAction, 
+    startCreate, 
+    startRename,
+    selectTreeOnRight
+} from '@/redux/uiSlice';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -11,23 +21,19 @@ import {
 import { PanelLeftClose, PanelRightClose } from 'lucide-react';
 import FileItem from './FileItem';
 
-const FileTreeView = ({ 
-    files, 
-    onFileSelect, 
-    activeFile, 
-    onAction, 
-    onToggleOrientation, 
-    isRightSide, 
-    // Consolidated UI state from hook
-    uiActionState,
-    setUiActionName,
-    // Direct execution handlers
-    onCreateFile,
-    onCreateFolder,
-    onRename 
+const FileTreeView = ({
+    onToggleOrientation,
 }) => {
+    const dispatch = useAppDispatch();
+    
+    // State pulled from Redux
+    const files = useAppSelector(selectFilesTree);
+    const activeFile = useAppSelector(selectActiveFile);
+    const uiActionState = useAppSelector(selectUiActionState);
+    const isRightSide = useAppSelector(selectTreeOnRight);
+
     const inputRef = useRef(null);
-    const [contextTarget, setContextTarget] = useState(null);
+    const [contextTarget, setContextTarget] = useState(null); // Local UI state - FIXED: Added variable names
 
     const { mode, target, name } = uiActionState;
     const isCreating = mode.startsWith('create');
@@ -35,6 +41,7 @@ const FileTreeView = ({
     const isCreatingFile = mode === 'create-file';
     const isCreatingFolder = mode === 'create-folder';
 
+    // Helper for context menu (Inconsistent structure, kept for original component fidelity)
     const findNodeByName = (nodes, name) => {
         const stack = [...nodes];
         while (stack.length) {
@@ -44,69 +51,77 @@ const FileTreeView = ({
         }
         return null;
     };
-
+    
+    // Focus the input when creation or renaming mode starts
     useEffect(() => {
-      console.log("Context Target changed: " + (contextTarget ? contextTarget.name : 'null'));
-    }, [contextTarget]);
+        if ((isCreating || isRenaming) && inputRef.current) { // FIXED: Incomplete OR operator and condition check
+            setTimeout(() => {
+                inputRef.current?.focus();
+                if (isRenaming) {
+                    inputRef.current?.select();
+                }
+            }, 10);
+        }
+    }, [isCreating, isRenaming]); // FIXED: Added dependency array to control effect re-runs
+
+    // Dispatcher for context menu items
+    const handleTreeAction = (action, item = null) => {
+        if (action === 'new-file' || action === 'new-folder') { // FIXED: Incomplete OR operator
+            dispatch(startCreate({ type: action === 'new-file'? 'file' : 'folder', target: item }));
+        } else if (action === 'new-file-root' || action === 'new-folder-root') { // FIXED: Incomplete OR operator
+            dispatch(startCreate({ type: action === 'new-file-root'? 'file' : 'folder', target: null }));
+        } else if (action === 'rename') {
+            dispatch(startRename(item));
+        } else if (action === 'delete') {
+            dispatch(deleteItemThunk(item));
+        } 
+        // Note: Cancel actions are handled by dedicated thunk dispatch or keydown/blur
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            if (isCreating) {
+                // Thunk reads name/target from Redux UI state internally
+                dispatch(handleCreateItemThunk());
+            } else if (isRenaming) {
+                dispatch(handleRenameItemThunk());
+            }
+        } else if (e.key === 'Escape') {
+            dispatch(cancelUiAction());
+        }
+    };
+
+    const handleBlur = () => {
+        if (isCreating) {
+            // For creation, blur acts as cancellation
+            dispatch(cancelUiAction());
+        } else if (isRenaming) {
+            // For renaming, if name is valid and different, execute rename
+            if (name.trim() && target && name !== target.name) {
+                dispatch(handleRenameItemThunk());
+            } else {
+                // Otherwise, cancel the inline rename UI
+                dispatch(cancelUiAction());
+            }
+        }
+    };
 
     const onOpenMenu = (e) => {
         const el = e?.target?.closest('[data-node-name]');
         if (el) {
             const nodeName = el.getAttribute('data-node-name');
-            // Note: This findNodeByName is inefficient; for large trees, contextTarget should be passed via props/context.
-            // Keeping for consistency with original structure, but acknowledging potential performance issue.
+            // Inefficient but kept for original fidelity.
             setContextTarget(findNodeByName(files, nodeName));
         } else {
             setContextTarget(null);
         }
     };
-
-    // Focus the input when creating a new file or folder, or when renaming
-    useEffect(() => {
-        if ((isCreating || isRenaming) && inputRef.current) {
-            setTimeout(() => {
-                inputRef.current?.focus();
-                if (isRenaming) {
-                    // Select all text when renaming
-                    inputRef.current?.select();
-                }
-            }, 10);
-        }
-    },);
-
-    // Handle keydown events for inline input
-    const handleKeyDown = (e) => {
-        if (e.key === 'Enter') {
-            if (isCreatingFile) {
-                onCreateFile(name, target);
-            } else if (isCreatingFolder) {
-                onCreateFolder(name, target);
-            } else if (isRenaming) {
-                onRename(target, name);
-            }
-        } else if (e.key === 'Escape') {
-            // Cancel the action
-            onAction(isCreating? 'cancel-create' : 'cancel-rename');
-        }
-    };
-
-    // Handle blur event for inline input (Safely removes auto-save on creation blur)
-    const handleBlur = () => {
-        if (isCreating) {
-            // For creation, blur acts as cancellation, forcing the user to press ENTER to save
-            // This prevents race conditions with ESCAPE key and ambiguous user intent.
-            onAction('cancel-create');
-        } else if (isRenaming) {
-            // For renaming, if a valid and different name is entered, execute the rename on blur.
-            if (name.trim() && name!== target.name) {
-                onRename(target, name);
-            } else {
-                // Otherwise, cancel the inline rename UI
-                onAction('cancel-rename');
-            }
-        }
-    };
     
+    // Handler for FileItem clicks
+    const onFileSelectHandler = (item) => {
+        dispatch(selectFileThunk(item));
+    };
+
     return (
         <ContextMenu onOpenAutoFocus={onOpenMenu} onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
             <ContextMenuTrigger asChild>
@@ -129,9 +144,16 @@ const FileTreeView = ({
                     </div>
                     <div className="flex-grow">
                         {files.map((item, index) => (
-                            <FileItem key={item.path || index} item={item} onFileSelect={onFileSelect} activeFile={activeFile} onAction={onAction} onRightMouseButtonClick={(item)=>{setContextTarget(item)}} />
+                            <FileItem 
+                                key={item.path || index} // FIXED: Incomplete OR operator
+                                item={item} 
+                                onFileSelect={onFileSelectHandler} 
+                                activeFile={activeFile} 
+                                onAction={handleTreeAction} 
+                                onRightMouseButtonClick={(item) => { setContextTarget(item) }} 
+                            />
                         ))}
-                        
+
                         {/* Inline creation input */}
                         {(isCreating) && (
                             <div className="px-2 py-1">
@@ -151,7 +173,7 @@ const FileTreeView = ({
                                         ref={inputRef}
                                         type="text"
                                         value={name}
-                                        onChange={(e) => setUiActionName(e.target.value)}
+                                        onChange={(e) => dispatch(setUiActionName(e.target.value))}
                                         onKeyDown={handleKeyDown}
                                         onBlur={handleBlur}
                                         placeholder={isCreatingFolder? "New folder name..." : "New file name..."}
@@ -160,7 +182,6 @@ const FileTreeView = ({
                                 </div>
                             </div>
                         )}
-
                         {/* Inline rename input */}
                         {isRenaming && target && (
                             <div className="px-2 py-1">
@@ -180,7 +201,7 @@ const FileTreeView = ({
                                         ref={inputRef}
                                         type="text"
                                         value={name}
-                                        onChange={(e) => setUiActionName(e.target.value)}
+                                        onChange={(e) => dispatch(setUiActionName(e.target.value))}
                                         onKeyDown={handleKeyDown}
                                         onBlur={handleBlur}
                                         placeholder={`Rename ${target.type}...`}
@@ -196,24 +217,24 @@ const FileTreeView = ({
                 {contextTarget? (
                     contextTarget.isFolder? (
                         <>
-                            <ContextMenuItem onClick={() => onAction('new-file', contextTarget)}>New File</ContextMenuItem>
-                            <ContextMenuItem onClick={() => onAction('new-folder', contextTarget)}>New Folder</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('new-file', contextTarget)}>New File</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('new-folder', contextTarget)}>New Folder</ContextMenuItem>
                             <ContextMenuSeparator />
-                            <ContextMenuItem onClick={() => onAction('rename', contextTarget)}>Rename</ContextMenuItem>
-                            <ContextMenuItem onClick={() => onAction('delete', contextTarget)}>Delete</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('rename', contextTarget)}>Rename</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('delete', contextTarget)}>Delete</ContextMenuItem>
                         </>
                     ) : (
                         <>
-                            <ContextMenuItem onClick={() => onFileSelect(contextTarget)}>Open</ContextMenuItem>
+                            <ContextMenuItem onClick={() => onFileSelectHandler(contextTarget)}>Open</ContextMenuItem>
                             <ContextMenuSeparator />
-                            <ContextMenuItem onClick={() => onAction('rename', contextTarget)}>Rename</ContextMenuItem>
-                            <ContextMenuItem onClick={() => onAction('delete', contextTarget)}>Delete</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('rename', contextTarget)}>Rename</ContextMenuItem>
+                            <ContextMenuItem onClick={() => handleTreeAction('delete', contextTarget)}>Delete</ContextMenuItem>
                         </>
                     )
                 ) : (
                     <>
-                        <ContextMenuItem onClick={() => onAction('new-file-root', null)}>New File</ContextMenuItem>
-                        <ContextMenuItem onClick={() => onAction('new-folder-root', null)}>New Folder</ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleTreeAction('new-file-root')}>New File</ContextMenuItem>
+                        <ContextMenuItem onClick={() => handleTreeAction('new-folder-root')}>New Folder</ContextMenuItem>
                     </>
                 )}
             </ContextMenuContent>

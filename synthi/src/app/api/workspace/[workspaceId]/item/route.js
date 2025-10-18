@@ -166,23 +166,23 @@ export async function PUT(request, { params }) {
     const workspaceId = data.workspaceId;
 
     const body = await request.json();
-    const filePath = body.filePath;
+    const itemPath = body.itemPath;
     const newPath = body.newPath;
 
     try {
 
-        if (!filePath) {
+        if (!itemPath) {
             return NextResponse.json({ error: 'filePath query parameter is required for PUT.' }, { status: 400 });
         }
         
         if (newPath) {
             
-            if (filePath.endsWith('/') !== newPath.endsWith('/')) {
+            if (itemPath.endsWith('/') !== newPath.endsWith('/')) {
                 return NextResponse.json({ error: 'Cannot change item type during rename (e.g., folder to file or vice versa).' }, { status: 400 });
             }
 
-            const isFolder = filePath.endsWith('/');
-            const oldGcsPath = `workspaces/${workspaceId}/${filePath}`;
+            const isFolder = itemPath.endsWith('/');
+            const oldGcsPath = `workspaces/${workspaceId}/${itemPath}`;
             const newGcsPath = `workspaces/${workspaceId}/${newPath}`;
 
             if (isFolder) {
@@ -195,7 +195,7 @@ export async function PUT(request, { params }) {
                 if (files.length === 0) {
                     const [exists] = await storage.bucket(BUCKET_NAME).file(oldGcsPath).exists();
                     if (!exists) {
-                        return NextResponse.json({ error: `Folder not found: ${filePath}` }, { status: 404 });
+                        return NextResponse.json({ error: `Folder not found: ${itemPath}` }, { status: 404 });
                     }
                 }
 
@@ -207,8 +207,8 @@ export async function PUT(request, { params }) {
                 await Promise.all(movePromises);
 
                 return NextResponse.json({ 
-                    message: `Folder successfully renamed from ${filePath} to ${newPath}.`,
-                    oldPath: filePath,
+                    message: `Folder successfully renamed from ${itemPath} to ${newPath}.`,
+                    oldPath: itemPath,
                     newPath: newPath
                 }, { status: 200 });
 
@@ -217,24 +217,24 @@ export async function PUT(request, { params }) {
                 const [exists] = await file.exists();
 
                 if (!exists) {
-                    return NextResponse.json({ error: `File not found: ${filePath}` }, { status: 404 });
+                    return NextResponse.json({ error: `File not found: ${itemPath}` }, { status: 404 });
                 }
 
                 await file.move(newGcsPath);
 
                 return NextResponse.json({ 
-                    message: `File successfully renamed from ${filePath} to ${newPath}.`,
-                    oldPath: filePath,
+                    message: `File successfully renamed from ${itemPath} to ${newPath}.`,
+                    oldPath: itemPath,
                     newPath: newPath
                 }, { status: 200 });
             }
 
         } else {
-            if (filePath.endsWith('/')) {
+            if (itemPath.endsWith('/')) {
                  return NextResponse.json({ error: 'Cannot PUT folder content. PUT is only for file content updates.' }, { status: 400 });
             }
 
-            const gcsFilePath = `workspaces/${workspaceId}/${filePath}`;
+            const gcsFilePath = `workspaces/${workspaceId}/${itemPath}`;
             const file = storage.bucket(BUCKET_NAME).file(gcsFilePath);
             
             const contentType = request.headers.get('content-type') || 'application/octet-stream';
@@ -265,8 +265,8 @@ export async function PUT(request, { params }) {
             });
 
             return NextResponse.json({ 
-                message: `File updated successfully at: ${filePath}`, 
-                path: filePath 
+                message: `File updated successfully at: ${itemPath}`, 
+                path: itemPath 
             }, { status: 200 }); 
         }
 
@@ -283,42 +283,52 @@ export async function DELETE(request, { params }) {
     const workspaceId = data.workspaceId;
     
     const body = await request.json(); 
-    const filePath = body.filePath;
+    const itemPath = body.itemPath;
 
     try {
 
-        if (!filePath) {
+        if (!itemPath) {
             return NextResponse.json({ error: 'filePath query parameter is required for DELETE.' }, { status: 400 });
         }
 
-        const gcsFilePath = `workspaces/${workspaceId}/${filePath}`;
-        const file = storage.bucket(BUCKET_NAME).file(gcsFilePath);
+        const gcsFilePath = `workspaces/${workspaceId}/${itemPath}`;
+        const item = storage.bucket(BUCKET_NAME).file(gcsFilePath);
 
-        if (filePath.endsWith('/')) {
-            const [files] = await storage.bucket(BUCKET_NAME).deleteFiles({
-                prefix: gcsFilePath,
+        const [exists] = await item.exists();
+        if (!exists) {
+                return NextResponse.json({ error: `File not found: ${itemPath}` }, { status: 404 });
+        }
+
+        if (itemPath.endsWith('/')) {
+
+            const [filesToDelete] = await storage.bucket(BUCKET_NAME).getFiles({
+                prefix: gcsFilePath.substring(0, gcsFilePath.length - 1),
             });
+            console.log('Files to delete:', filesToDelete.map(f => f.name));
+            await Promise.allSettled(filesToDelete.map(file => file.delete({ ignoreNotFound: true })))
 
-            if (files && files.length > 0) {
-                 return NextResponse.json({ 
-                    message: `Folder and ${files.length} contained items deleted successfully at: ${filePath}`, 
-                    path: filePath 
-                }, { status: 200 });
-            } else {
-                 return NextResponse.json({ error: `Folder not found or already empty: ${filePath}` }, { status: 404 });
+            try {
+                await item.delete();
+            } catch (markerError) {
+                if (markerError.code !== 404) {
+                    throw markerError; 
+                }
             }
+
+            const count = filesToDelete ? filesToDelete.length : 0;
+            
+            return NextResponse.json({ 
+                message: `${count} items deleted successfully(${itemPath}).`, 
+                path: itemPath 
+            }, { status: 200 });
 
         } else {
-            const [exists] = await file.exists();
-            if (!exists) {
-                 return NextResponse.json({ error: `File not found: ${filePath}` }, { status: 404 });
-            }
             
-            await file.delete();
+            await item.delete();
 
             return NextResponse.json({ 
-                message: `File deleted successfully: ${filePath}`, 
-                path: filePath 
+                message: `File deleted successfully: ${itemPath}`, 
+                path: itemPath 
             }, { status: 200 }); 
         }
 
