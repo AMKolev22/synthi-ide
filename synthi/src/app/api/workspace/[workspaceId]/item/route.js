@@ -304,7 +304,7 @@ export async function DELETE(request, { params }) {
             const [filesToDelete] = await storage.bucket(BUCKET_NAME).getFiles({
                 prefix: gcsFilePath.substring(0, gcsFilePath.length - 1),
             });
-            console.log('Files to delete:', filesToDelete.map(f => f.name));
+            
             await Promise.allSettled(filesToDelete.map(file => file.delete({ ignoreNotFound: true })))
 
             try {
