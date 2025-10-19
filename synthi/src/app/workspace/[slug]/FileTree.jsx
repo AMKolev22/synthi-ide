@@ -1,13 +1,19 @@
-// src/app/FileTree.jsx
 "use client"
 import { useState, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { selectFilesTree, selectActiveFile, handleCreateItemThunk, handleRenameItemThunk, deleteItemThunk, selectFileThunk } from '@/redux/workspaceSlice';
 import { 
-    selectUiActionState, 
-    setUiActionName, 
-    cancelUiAction, 
-    startCreate, 
+    selectFilesTree, 
+    selectActiveFile, 
+    handleCreateItemThunk, 
+    handleRenameItemThunk, 
+    deleteItemThunk, 
+    selectFileThunk 
+} from '@/redux/workspaceSlice';
+import {
+    selectUiActionState,
+    setUiActionName,
+    cancelUiAction,
+    startCreate,
     startRename,
     selectTreeOnRight
 } from '@/redux/uiSlice';
@@ -25,23 +31,23 @@ const FileTreeView = ({
     onToggleOrientation,
 }) => {
     const dispatch = useAppDispatch();
-    
+
     // State pulled from Redux
     const files = useAppSelector(selectFilesTree);
     const activeFile = useAppSelector(selectActiveFile);
     const uiActionState = useAppSelector(selectUiActionState);
     const isRightSide = useAppSelector(selectTreeOnRight);
-
-    const inputRef = useRef(null);
-    const [contextTarget, setContextTarget] = useState(null); // Local UI state - FIXED: Added variable names
-
+    
+    // inputRef retained ONLY for root-level creation (target: null)
+    const inputRef = useRef(null); 
+    const [contextTarget, setContextTarget] = useState(null);
     const { mode, target, name } = uiActionState;
     const isCreating = mode.startsWith('create');
     const isRenaming = mode === 'rename';
     const isCreatingFile = mode === 'create-file';
     const isCreatingFolder = mode === 'create-folder';
-
-    // Helper for context menu (Inconsistent structure, kept for original component fidelity)
+    
+    // Helper for context menu (Inefficient but retained)
     const findNodeByName = (nodes, name) => {
         const stack = [...nodes];
         while (stack.length) {
@@ -51,37 +57,33 @@ const FileTreeView = ({
         }
         return null;
     };
-    
-    // Focus the input when creation or renaming mode starts
+
+    // Focus hook modified: only handles root creation focus if target is null
     useEffect(() => {
-        if ((isCreating || isRenaming) && inputRef.current) { // FIXED: Incomplete OR operator and condition check
+        if (isCreating && !target && inputRef.current) {
             setTimeout(() => {
                 inputRef.current?.focus();
-                if (isRenaming) {
-                    inputRef.current?.select();
-                }
             }, 10);
         }
-    }, [isCreating, isRenaming]); // FIXED: Added dependency array to control effect re-runs
+    }, [isCreating, target]);
 
     // Dispatcher for context menu items
     const handleTreeAction = (action, item = null) => {
-        if (action === 'new-file' || action === 'new-folder') { // FIXED: Incomplete OR operator
-            dispatch(startCreate({ type: action === 'new-file'? 'file' : 'folder', target: item }));
-        } else if (action === 'new-file-root' || action === 'new-folder-root') { // FIXED: Incomplete OR operator
-            dispatch(startCreate({ type: action === 'new-file-root'? 'file' : 'folder', target: null }));
+        if (action === 'new-file' || action === 'new-folder') {
+            dispatch(startCreate({ type: action === 'new-file' ? 'file' : 'folder', target: item }));
+        } else if (action === 'new-file-root' || action === 'new-folder-root') {
+            dispatch(startCreate({ type: action === 'new-file-root' ? 'file' : 'folder', target: null }));
         } else if (action === 'rename') {
             dispatch(startRename(item));
         } else if (action === 'delete') {
             dispatch(deleteItemThunk(item));
-        } 
-        // Note: Cancel actions are handled by dedicated thunk dispatch or keydown/blur
+        }
     };
-
+    
+    // Action handlers passed down to FileItem
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
             if (isCreating) {
-                // Thunk reads name/target from Redux UI state internally
                 dispatch(handleCreateItemThunk());
             } else if (isRenaming) {
                 dispatch(handleRenameItemThunk());
@@ -90,33 +92,31 @@ const FileTreeView = ({
             dispatch(cancelUiAction());
         }
     };
-
+    
     const handleBlur = () => {
         if (isCreating) {
             // For creation, blur acts as cancellation
             dispatch(cancelUiAction());
         } else if (isRenaming) {
-            // For renaming, if name is valid and different, execute rename
+            // For renaming, execute thunk or cancel
             if (name.trim() && target && name !== target.name) {
                 dispatch(handleRenameItemThunk());
             } else {
-                // Otherwise, cancel the inline rename UI
                 dispatch(cancelUiAction());
             }
         }
     };
-
+    
     const onOpenMenu = (e) => {
         const el = e?.target?.closest('[data-node-name]');
         if (el) {
             const nodeName = el.getAttribute('data-node-name');
-            // Inefficient but kept for original fidelity.
             setContextTarget(findNodeByName(files, nodeName));
         } else {
             setContextTarget(null);
         }
     };
-    
+
     // Handler for FileItem clicks
     const onFileSelectHandler = (item) => {
         dispatch(selectFileThunk(item));
@@ -133,9 +133,9 @@ const FileTreeView = ({
                         <button
                             onClick={onToggleOrientation}
                             className="p-1 hover:bg-gray-700 rounded transition-colors"
-                            title={isRightSide? "Move to left" : "Move to right"}
+                            title={isRightSide ? "Move to left" : "Move to right"}
                         >
-                            {isRightSide? (
+                            {isRightSide ? (
                                 <PanelLeftClose className="w-4 h-4 text-gray-400" />
                             ) : (
                                 <PanelRightClose className="w-4 h-4 text-gray-400" />
@@ -144,22 +144,27 @@ const FileTreeView = ({
                     </div>
                     <div className="flex-grow">
                         {files.map((item, index) => (
-                            <FileItem 
-                                key={item.path || index} // FIXED: Incomplete OR operator
-                                item={item} 
-                                onFileSelect={onFileSelectHandler} 
-                                activeFile={activeFile} 
-                                onAction={handleTreeAction} 
-                                onRightMouseButtonClick={(item) => { setContextTarget(item) }} 
+                            <FileItem
+                                key={item.path || index} 
+                                item={item}
+                                onFileSelect={onFileSelectHandler}
+                                activeFile={activeFile}
+                                onAction={handleTreeAction}
+                                onRightMouseButtonClick={(item) => { setContextTarget(item) }}
+                                // Propagating state and handlers
+                                uiActionState={uiActionState}
+                                dispatch={dispatch}
+                                handleKeyDown={handleKeyDown}
+                                handleBlur={handleBlur}
                             />
                         ))}
-
-                        {/* Inline creation input */}
-                        {(isCreating) && (
+                        
+                        {/* Root-level creation input retained for target: null */}
+                        {(isCreating && !target) && (
                             <div className="px-2 py-1">
                                 <div className="flex items-center">
                                     <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-                                        {isCreatingFolder? (
+                                        {isCreatingFolder ? (
                                             <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                                 <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                                             </svg>
@@ -176,35 +181,7 @@ const FileTreeView = ({
                                         onChange={(e) => dispatch(setUiActionName(e.target.value))}
                                         onKeyDown={handleKeyDown}
                                         onBlur={handleBlur}
-                                        placeholder={isCreatingFolder? "New folder name..." : "New file name..."}
-                                        className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-gray-500"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        {/* Inline rename input */}
-                        {isRenaming && target && (
-                            <div className="px-2 py-1">
-                                <div className="flex items-center">
-                                    <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-                                        {target.isFolder? (
-                                            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                            </svg>
-                                        )}
-                                    </div>
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => dispatch(setUiActionName(e.target.value))}
-                                        onKeyDown={handleKeyDown}
-                                        onBlur={handleBlur}
-                                        placeholder={`Rename ${target.type}...`}
+                                        placeholder={isCreatingFolder ? "New folder name..." : "New file name..."}
                                         className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-gray-500"
                                     />
                                 </div>
@@ -213,9 +190,10 @@ const FileTreeView = ({
                     </div>
                 </div>
             </ContextMenuTrigger>
+            {/* Context menu logic remains unchanged */}
             <ContextMenuContent className="w-48">
-                {contextTarget? (
-                    contextTarget.isFolder? (
+                {contextTarget ? (
+                    contextTarget.isFolder ? (
                         <>
                             <ContextMenuItem onClick={() => handleTreeAction('new-file', contextTarget)}>New File</ContextMenuItem>
                             <ContextMenuItem onClick={() => handleTreeAction('new-folder', contextTarget)}>New Folder</ContextMenuItem>
@@ -241,5 +219,4 @@ const FileTreeView = ({
         </ContextMenu>
     );
 };
-
 export default FileTreeView;
