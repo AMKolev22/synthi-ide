@@ -343,12 +343,8 @@ export const { updateContent, renameItemStateUpdate, setSlug } = workspaceSlice.
 // --- MEMOIZED SELECTORS ---
 
 // Selector to build the file tree (expensive operation, memoize)
-export const selectFilesTree = createSelector(
-    (state) => state.workspace.rawFiles,
-    (rawFiles) => {
-        return rawFiles; 
-    }
-);
+export const selectFilesTree = (state) => state.workspace.rawFiles;
+
 
 export const selectActiveFile = (state) => state.workspace.activeFile;
 export const selectCurrentContent = (state) => state.workspace.currentContent;
