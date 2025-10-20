@@ -125,8 +125,8 @@ const FileTreeView = ({
     return (
         <ContextMenu onOpenAutoFocus={onOpenMenu} onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
             <ContextMenuTrigger asChild>
-                <div className="w-full h-full bg-gray-800 text-white flex flex-col overflow-y-auto" onClick={()=>{setContextTarget(null)}}>
-                    <div className="px-3 py-2 flex items-center justify-between border-b border-gray-700 sticky top-0 bg-gray-800 z-10">
+                <div className="w-full h-full bg-[#262626] text-white flex flex-col overflow-y-auto" onClick={()=>{setContextTarget(null)}}>
+                    <div className="px-3 py-2 flex items-center justify-between border-b border-gray-700 sticky top-0 bg-[#1e1e1e] z-10">
                         <div className="flex items-center">
                             <span className="text-sm text-gray-200">Project</span>
                         </div>

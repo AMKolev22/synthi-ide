@@ -79,7 +79,7 @@ const EditorPanel = ({
                 <ResizablePanel defaultSize={70} minSize={20}>
                     <div className="h-full flex flex-col bg-[#1e1e1e]">
                         {/* Tab/Breadcrumb area */}
-                        <div className="px-3 py-2 text-sm border-b border-[#2a2a2a] bg-[#252526] flex justify-between items-center gap-1 overflow-x-auto whitespace-nowrap">
+                        <div className="px-3 py-2 text-sm border-b border-[#545454] bg-[#252526] flex justify-between items-center gap-1 overflow-x-auto whitespace-nowrap">
                             <div className='flex flex-row items-center gap-2'>
                                 {breadcrumb && breadcrumb.length > 0? (
                                     breadcrumb.map((name, idx) => {
@@ -173,7 +173,7 @@ const EditorPanel = ({
                     <>
                         <ResizableHandle
                             withHandle
-                            className="!pointer-events-auto z-50"
+                            className="!pointer-events-auto bg-[#545454] hover:bg-[#007acc] w-2 z-50"
                             onMouseDown={(e) => e.stopPropagation()}
                         />
                         <ResizablePanel defaultSize={30} minSize={15} >
