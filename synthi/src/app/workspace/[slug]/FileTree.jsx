@@ -123,100 +123,171 @@ const FileTreeView = ({
     };
 
     return (
-        <ContextMenu onOpenAutoFocus={onOpenMenu} onOpenChange={(open) => { if (!open) setContextTarget(null); }}>
-            <ContextMenuTrigger asChild>
-                <div className="w-full h-full bg-[#262626] text-white flex flex-col overflow-y-auto" onClick={()=>{setContextTarget(null)}}>
-                    <div className="px-3 py-2 flex items-center justify-between border-b border-gray-700 sticky top-0 bg-[#1e1e1e] z-10">
-                        <div className="flex items-center">
-                            <span className="text-sm text-gray-200">Project</span>
-                        </div>
-                        <button
-                            onClick={onToggleOrientation}
-                            className="p-1 hover:bg-gray-700 rounded transition-colors"
-                            title={isRightSide ? "Move to left" : "Move to right"}
-                        >
-                            {isRightSide ? (
-                                <PanelLeftClose className="w-4 h-4 text-gray-400" />
-                            ) : (
-                                <PanelRightClose className="w-4 h-4 text-gray-400" />
-                            )}
-                        </button>
-                    </div>
-                    <div className="flex-grow">
-                        {files.map((item, index) => (
-                            <FileItem
-                                key={item.path || index} 
-                                item={item}
-                                onFileSelect={onFileSelectHandler}
-                                activeFile={activeFile}
-                                onAction={handleTreeAction}
-                                onRightMouseButtonClick={(item) => { setContextTarget(item) }}
-                                // Propagating state and handlers
-                                uiActionState={uiActionState}
-                                dispatch={dispatch}
-                                handleKeyDown={handleKeyDown}
-                                handleBlur={handleBlur}
-                            />
-                        ))}
-                        
-                        {/* Root-level creation input retained for target: null */}
-                        {(isCreating && !target) && (
-                            <div className="px-2 py-1">
-                                <div className="flex items-center">
-                                    <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-                                        {isCreatingFolder ? (
-                                            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                            </svg>
-                                        )}
-                                    </div>
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={name}
-                                        onChange={(e) => dispatch(setUiActionName(e.target.value))}
-                                        onKeyDown={handleKeyDown}
-                                        onBlur={handleBlur}
-                                        placeholder={isCreatingFolder ? "New folder name..." : "New file name..."}
-                                        className="w-full bg-transparent border-none outline-none text-sm text-white placeholder-gray-500"
-                                    />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </ContextMenuTrigger>
-            {/* Context menu logic remains unchanged */}
-            <ContextMenuContent className="w-48">
-                {contextTarget ? (
-                    contextTarget.isFolder ? (
-                        <>
-                            <ContextMenuItem onClick={() => handleTreeAction('new-file', contextTarget)}>New File</ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTreeAction('new-folder', contextTarget)}>New Folder</ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onClick={() => handleTreeAction('rename', contextTarget)}>Rename</ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTreeAction('delete', contextTarget)}>Delete</ContextMenuItem>
-                        </>
+    <ContextMenu
+      onOpenAutoFocus={onOpenMenu}
+      onOpenChange={(open) => {
+        if (!open) setContextTarget(null);
+      }}
+    >
+      <ContextMenuTrigger asChild>
+        <div
+          className="w-full h-full bg-[#232323] text-gray-100 flex flex-col overflow-y-auto border-r border-[#343434]"
+          onClick={() => {
+            setContextTarget(null);
+          }}
+        >
+          {/* Header */}
+          <div className="px-3 py-2 flex items-center justify-between border-b border-[#343434] sticky top-0 bg-[#202020] z-10">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold tracking-wide uppercase text-gray-400">
+                Project
+              </span>
+            </div>
+            <button
+              onClick={onToggleOrientation}
+              className="p-1.5 rounded border border-[#3a3a3a] bg-[#262626] hover:bg-[#2f2f2f] transition"
+              title={isRightSide ? "Move to left" : "Move to right"}
+            >
+              {isRightSide ? (
+                <PanelLeftClose className="w-4 h-4 text-gray-300" />
+              ) : (
+                <PanelRightClose className="w-4 h-4 text-gray-300" />
+              )}
+            </button>
+          </div>
+
+          {/* File list */}
+          <div className="flex-grow">
+            {files.map((item, index) => (
+              <FileItem
+                key={item.path || index}
+                item={item}
+                onFileSelect={onFileSelectHandler}
+                activeFile={activeFile}
+                onAction={handleTreeAction}
+                onRightMouseButtonClick={(item) => {
+                  setContextTarget(item);
+                }}
+                uiActionState={uiActionState}
+                dispatch={dispatch}
+                handleKeyDown={handleKeyDown}
+                handleBlur={handleBlur}
+              />
+            ))}
+
+            {/* Root creation input */}
+            {isCreating && !target && (
+              <div className="px-3 py-1">
+                <div className="flex items-center">
+                  <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
+                    {isCreatingFolder ? (
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                      </svg>
                     ) : (
-                        <>
-                            <ContextMenuItem onClick={() => onFileSelectHandler(contextTarget)}>Open</ContextMenuItem>
-                            <ContextMenuSeparator />
-                            <ContextMenuItem onClick={() => handleTreeAction('rename', contextTarget)}>Rename</ContextMenuItem>
-                            <ContextMenuItem onClick={() => handleTreeAction('delete', contextTarget)}>Delete</ContextMenuItem>
-                        </>
-                    )
-                ) : (
-                    <>
-                        <ContextMenuItem onClick={() => handleTreeAction('new-file-root')}>New File</ContextMenuItem>
-                        <ContextMenuItem onClick={() => handleTreeAction('new-folder-root')}>New Folder</ContextMenuItem>
-                    </>
-                )}
-            </ContextMenuContent>
-        </ContextMenu>
-    );
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={name}
+                    onChange={(e) =>
+                      dispatch(setUiActionName(e.target.value))
+                    }
+                    onKeyDown={handleKeyDown}
+                    onBlur={handleBlur}
+                    placeholder={
+                      isCreatingFolder
+                        ? "New folder name..."
+                        : "New file name..."
+                    }
+                    className="w-full bg-transparent border-none outline-none text-sm text-gray-200 placeholder-gray-500"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </ContextMenuTrigger>
+
+      {/* Context Menu */}
+      <ContextMenuContent className="w-48 bg-[#1f1f1f] border border-[#333] text-gray-200 shadow-lg">
+        {contextTarget ? (
+          contextTarget.isFolder ? (
+            <>
+              <ContextMenuItem
+                onClick={() => handleTreeAction("new-file", contextTarget)}
+              >
+                New File
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => handleTreeAction("new-folder", contextTarget)}
+              >
+                New Folder
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => handleTreeAction("rename", contextTarget)}
+              >
+                Rename
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => handleTreeAction("delete", contextTarget)}
+              >
+                Delete
+              </ContextMenuItem>
+            </>
+          ) : (
+            <>
+              <ContextMenuItem
+                onClick={() => onFileSelectHandler(contextTarget)}
+              >
+                Open
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem
+                onClick={() => handleTreeAction("rename", contextTarget)}
+              >
+                Rename
+              </ContextMenuItem>
+              <ContextMenuItem
+                onClick={() => handleTreeAction("delete", contextTarget)}
+              >
+                Delete
+              </ContextMenuItem>
+            </>
+          )
+        ) : (
+          <>
+            <ContextMenuItem
+              onClick={() => handleTreeAction("new-file-root")}
+            >
+              New File
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => handleTreeAction("new-folder-root")}
+            >
+              New Folder
+            </ContextMenuItem>
+          </>
+        )}
+      </ContextMenuContent>
+    </ContextMenu>
+  );
 };
 export default FileTreeView;

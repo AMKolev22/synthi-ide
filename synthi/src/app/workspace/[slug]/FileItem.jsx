@@ -1,8 +1,8 @@
 // src/app/FileItem.jsx
 "use client"
 import { useState, useRef, useEffect } from 'react';
-import { ChevronIcon, FileIcon } from './Icons';
-
+import { ChevronIcon } from './Icons';
+import { getFileIcon, FolderIcon } from '@/utils/fileIcons';
 import { setUiActionName } from '@/redux/uiSlice';
 
 const FileItem = ({ 
@@ -75,14 +75,10 @@ const FileItem = ({
                 style={paddingStyle}
             >
                 <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-                    {item.isFolder? (
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                        </svg>
+                    {item.isFolder ? (
+                        <FolderIcon />
                     ) : (
-                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                        </svg>
+                        getFileIcon(item.name)
                     )}
                 </div>
                 <input
@@ -117,7 +113,13 @@ const FileItem = ({
                         <ChevronIcon isOpen={isOpen} isSelected={isSelected} />
                     </div>
                 )}
-                <FileIcon node={item} isSelected={isSelected} />
+                <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
+                    {item.isFolder ? (
+                        <FolderIcon />
+                    ) : (
+                        getFileIcon(item.name)
+                    )}
+                </div>
                 <span className={`text-sm truncate ${isSelected? 'text-white' : 'text-gray-200'}`}>{item.name}</span>
             </div>
             
@@ -128,14 +130,10 @@ const FileItem = ({
                         <div className="py-1 px-2" style={{ paddingLeft: `${(level + 1) * 16 + 8}px` }}>
                             <div className="flex items-center">
                                 <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-                                    {isCreatingFolder? (
-                                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                        </svg>
+                                    {isCreatingFolder ? (
+                                        <FolderIcon />
                                     ) : (
-                                        <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-                                        </svg>
+                                        getFileIcon(name || 'newfile')
                                     )}
                                 </div>
                                 <input
