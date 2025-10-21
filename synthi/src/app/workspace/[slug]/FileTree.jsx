@@ -131,7 +131,7 @@ const FileTreeView = ({
     >
       <ContextMenuTrigger asChild>
         <div
-          className="w-full h-full bg-[#232323] text-gray-100 flex flex-col overflow-y-auto border-r border-[#343434]"
+          className="w-full h-full select-none bg-[#232323] text-gray-100 flex flex-col overflow-y-auto border-r border-[#343434]"
           onClick={() => {
             setContextTarget(null);
           }}

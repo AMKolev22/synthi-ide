@@ -94,7 +94,7 @@ const FileItem = ({
           </div>
         )}
         <div className="w-4 h-4 mr-2 flex-shrink-0 flex items-center justify-center">
-          {item.isFolder ? <FolderIcon /> : getFileIcon(item.name)}
+          {item.isFolder ? <FolderIcon isOpen={isOpen} /> : getFileIcon(item.name)}
         </div>
         {/* replaced the early return block, stopping files (children from showing during rename) */}
         {isTargetForRename ? (
