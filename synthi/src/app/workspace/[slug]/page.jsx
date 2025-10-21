@@ -1,4 +1,3 @@
-// src/app/EditorPage.jsx
 'use client';
 import { useState, useEffect } from 'react';
 import { use } from 'react';

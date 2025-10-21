@@ -1,4 +1,3 @@
-// src/app/Icons.jsx
 "use client"
 import { Folder, FolderOpen, FileCode2, FileJson, FileType, FileText } from 'lucide-react';
 
