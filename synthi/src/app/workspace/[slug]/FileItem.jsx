@@ -17,31 +17,49 @@ const FileItem = ({
   handleKeyDown,
   handleBlur,
 }) => {
-  // Retain local state for folder expansion
-  const [isOpen, setIsOpen] = useState(false);
+  
+    // Helper: check if folder contains the active file
+  const containsActiveFile = (folder, activeFilePath) => {
+    if (!folder.isFolder || !folder.children || !activeFilePath) return false;
+    for (const child of folder.children) {
+      if (child.path === activeFilePath) return true;
+      if (child.isFolder && containsActiveFile(child, activeFilePath)) return true;
+    }
+    return false;
+  };
 
-  // Local Ref for contextual input focusing
-  const localInputRef = useRef(null);
+  // Determine initial auto-expand state
+  const shouldAutoExpand =
+    item.isFolder && activeFile && containsActiveFile(item, activeFile.path);
+
+  // Retain local state for folder expansion
+  const [isOpen, setIsOpen] = useState(shouldAutoExpand);
 
   // Destructure UI state and derive contextual flags
   const { mode, target, name } = uiActionState;
   const isCreating = mode.startsWith("create");
   const isRenaming = mode === "rename";
   const isTargetForRename = isRenaming && target && item.path === target.path;
-  // Check if this folder is the parent target for a new item creation
   const isParentForCreation =
     isCreating && item.isFolder && target && item.path === target.path;
   const isCreatingFolder = mode === "create-folder";
 
-  // Focus management for the decentralized input
+  // Local ref for input focus
+  const localInputRef = useRef(null);
+
+  // Auto-expand folders containing the active file
+  useEffect(() => {
+    if (item.isFolder && activeFile && containsActiveFile(item, activeFile.path)) {
+      setIsOpen(true);
+    }
+  }, [activeFile]);
+
+  // Input focus for rename/create
   useEffect(() => {
     if ((isTargetForRename || isParentForCreation) && localInputRef.current) {
-      // Apply small timeout to allow React to fully mount and paint the input
       setTimeout(() => {
         localInputRef.current?.focus();
-        if (isTargetForRename) {
-          localInputRef.current?.select();
-        }
+        if (isTargetForRename) localInputRef.current?.select();
       }, 10);
     }
   }, [isTargetForRename, isParentForCreation]);

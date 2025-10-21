@@ -173,7 +173,7 @@ const EditorPanel = ({
                     <>
                         <ResizableHandle
                             withHandle
-                            className="!pointer-events-auto bg-[#545454] hover:bg-[#007acc] w-2 z-50"
+                            className="!pointer-events-auto bg-[#545454] hover:bg-emerald-500 w-0.5 z-50"
                             onMouseDown={(e) => e.stopPropagation()}
                         />
                         <ResizablePanel defaultSize={30} minSize={15} >
