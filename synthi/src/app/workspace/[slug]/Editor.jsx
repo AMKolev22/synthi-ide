@@ -12,6 +12,7 @@ import {
     saveFileContentThunk, 
     updateContent 
 } from '@/redux/workspaceSlice';
+import { selectAutoSaveEnabled } from '@/redux/uiSlice';
 import { Folder, FileText, Circle, Save } from 'lucide-react';
 import {
     ResizableHandle,
@@ -42,6 +43,7 @@ const EditorPanel = ({
     const isUnsaved = useAppSelector(selectIsUnsaved);
     const breadcrumb = useAppSelector(selectBreadcrumb);
     const showTerminal = useAppSelector(state => state.ui.showTerminal);
+    const autoSaveEnabled = useAppSelector(selectAutoSaveEnabled);
     
     // Local state retention
     const [position, setPosition] = useState({ lineNumber: 1, column: 1 });
@@ -58,6 +60,18 @@ const EditorPanel = ({
             dispatch(saveFileContentThunk());
         }
     };
+
+    // Auto-save functionality with debouncing
+    useEffect(() => {
+        if (!autoSaveEnabled || !isUnsaved || !activeFile) return;
+        
+        // Debounce auto-save by 2 seconds
+        const autoSaveTimer = setTimeout(() => {
+            dispatch(saveFileContentThunk());
+        }, 500);
+        
+        return () => clearTimeout(autoSaveTimer);
+    }, [code, autoSaveEnabled, isUnsaved, activeFile, dispatch]);
 
     // Add keyboard shortcuts (Ctrl+S uses the centralized save function)
     useEffect(() => {
@@ -137,7 +151,7 @@ const EditorPanel = ({
                                             options={{
                                                 minimap: { enabled: true },
                                                 fontSize: 14,
-                                                wordWrap: 'on',
+                                                wordWrap: 'off',
                                                 scrollBeyondLastLine: false,
                                                 automaticLayout: true,
                                                 lineNumbers: true,

@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react';
 import { Search, TerminalSquare, Play, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { toggleAutoSave, selectAutoSaveEnabled } from '@/redux/uiSlice';
 
 export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
+  const dispatch = useAppDispatch();
+  const autoSaveEnabled = useAppSelector(selectAutoSaveEnabled);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
 
@@ -26,11 +30,11 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
           </PopoverTrigger>
           <PopoverContent className="min-w-[220px]">
             <div className="flex flex-col gap-1 text-sm">
-              <button className="text-left hover:underline">New File</button>
-              <button className="text-left hover:underline">Open File</button>
-              <button className="text-left hover:underline">Open Folder</button>
-              <button className="text-left hover:underline">Save</button>
-              <button className="text-left hover:underline">Save As</button>
+              <button className="text-left hover:text-emerald-400">New File</button>
+              <button className="text-left hover:text-emerald-400">Open File</button>
+              <button className="text-left hover:text-emerald-400">Open Folder</button>
+              <button className="text-left hover:text-emerald-400">Save</button>
+              <button className="text-left hover:text-emerald-400">Save As</button>
             </div>
           </PopoverContent>
         </Popover>
@@ -44,12 +48,12 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
               Edit
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="min-w-[220px] bg-[#262626]">
-            <div className="flex flex-col gap-1 text-sm bg-[#262626]">
-              <button className="text-left hover:underline">Undo</button>
-              <button className="text-left hover:underline">Redo</button>
-              <button className="text-left hover:underline">Copy</button>
-              <button className="text-left hover:underline">Paste</button>
+          <PopoverContent className="min-w-[220px]">
+            <div className="flex flex-col gap-1 text-sm">
+              <button className="text-left hover:text-emerald-400">Undo</button>
+              <button className="text-left hover:text-emerald-400">Redo</button>
+              <button className="text-left hover:text-emerald-400">Copy</button>
+              <button className="text-left hover:text-emerald-400">Paste</button>
             </div>
           </PopoverContent>
         </Popover>
@@ -66,8 +70,8 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
           </PopoverTrigger>
           <PopoverContent className="min-w-[220px]">
             <div className="flex flex-col gap-1 text-sm">
-              <button className="text-left hover:underline">Select All</button>
-              <button className="text-left hover:underline">Expand Selection</button>
+              <button className="text-left hover:text-emerald-400">Select All</button>
+              <button className="text-left hover:text-emerald-400">Expand Selection</button>
             </div>
           </PopoverContent>
         </Popover>
@@ -84,8 +88,8 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
           </PopoverTrigger>
           <PopoverContent className="min-w-[220px]">
             <div className="flex flex-col gap-1 text-sm">
-              <button className="text-left hover:underline">Open View...</button>
-              <button className="text-left hover:underline">Appearence</button>
+              <button className="text-left hover:text-emerald-400">Open View...</button>
+              <button className="text-left hover:text-emerald-400">Appearence</button>
             </div>
           </PopoverContent>
         </Popover>
@@ -137,13 +141,31 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
               <Settings className="w-4 h-4" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="min-w-[220px]">
-            <div className="text-xs text-muted-foreground mb-2">Quick actions</div>
-            <div className="flex flex-col gap-1 text-sm">
-              <button className="text-left hover:underline" onClick={onRun}>
+          <PopoverContent className="min-w-[220px] bg-[#262626] border-[#3a3a3a]">
+            <div className="text-xs text-gray-400 mb-2 font-semibold">Settings</div>
+            <div className="flex flex-col gap-2">
+              {/* Auto-save toggle */}
+              <div className="flex items-center justify-between py-1">
+                <span className="text-sm ">Auto Save</span>
+                <button
+                  onClick={() => dispatch(toggleAutoSave())}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                    autoSaveEnabled ? 'bg-emerald-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      autoSaveEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+              <div className="border-t border-[#3a3a3a] my-1"></div>
+              <div className="text-xs text-gray-400 mb-1">Quick actions</div>
+              <button className="text-left text-sm hover:text-emerald-400 transition-colors" onClick={onRun}>
                 Run current file
               </button>
-              <button className="text-left hover:underline" onClick={onToggleTerminal}>
+              <button className="text-left text-sm hover:text-emerald-400 transition-colors" onClick={onToggleTerminal}>
                 Toggle terminal
               </button>
             </div>

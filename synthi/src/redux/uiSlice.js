@@ -10,6 +10,7 @@ const initialUiActionState = {
 const initialState = {
     showTerminal: false,
     treeOnRight: false,
+    autoSaveEnabled: false,
     uiActionState: initialUiActionState,
 };
 
@@ -19,10 +20,13 @@ const uiSlice = createSlice({
     reducers: {
         // Layout Reducers
         toggleTerminal: (state) => {
-            state.showTerminal =!state.showTerminal;
+            state.showTerminal = !state.showTerminal;
         },
         setTreeOrientation: (state) => {
-            state.treeOnRight =!state.treeOnRight;
+            state.treeOnRight = !state.treeOnRight;
+        },
+        toggleAutoSave: (state) => {
+            state.autoSaveEnabled = !state.autoSaveEnabled;
         },
         
         // UI Action State Machine Reducers
@@ -54,6 +58,7 @@ const uiSlice = createSlice({
 export const {
     toggleTerminal,
     setTreeOrientation,
+    toggleAutoSave,
     startCreate,
     startRename,
     setUiActionName,
@@ -63,6 +68,7 @@ export const {
 // Selectors
 export const selectShowTerminal = (state) => state.ui.showTerminal;
 export const selectTreeOnRight = (state) => state.ui.treeOnRight;
+export const selectAutoSaveEnabled = (state) => state.ui.autoSaveEnabled;
 export const selectUiActionState = (state) => state.ui.uiActionState;
 
 export default uiSlice.reducer;
