@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { use } from 'react';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
-import { fetchFilesThunk, selectActiveFile, setSlug } from '@/redux/workspaceSlice';
+import { fetchFilesThunk, selectActiveFile, setSlug, selectFileThunk } from '@/redux/workspaceSlice';
 import { 
     selectShowTerminal, 
     selectTreeOnRight, 
@@ -35,6 +35,17 @@ export default function EditorPage({ params }) {
     const activeFile = useAppSelector(selectActiveFile);
     const showTerminal = useAppSelector(selectShowTerminal);
     const treeOnRight = useAppSelector(selectTreeOnRight);
+    
+    // Track if we've loaded the initial file content
+    const [hasLoadedInitialFile, setHasLoadedInitialFile] = useState(false);
+    
+    // 3. Load content for the initially selected file
+    useEffect(() => {
+        if (activeFile && !hasLoadedInitialFile) {
+            dispatch(selectFileThunk(activeFile));
+            setHasLoadedInitialFile(true);
+        }
+    }, [activeFile, hasLoadedInitialFile, dispatch]);
     
     // Local state for layout management (used to force remount of ResizablePanelGroup)
     const [panelGroupKey, setPanelGroupKey] = useState(0);
@@ -81,13 +92,13 @@ export default function EditorPage({ params }) {
                 {treeOnRight? (
                     <>
                         {EditorPanelComponent}
-                        <ResizableHandle withHandle />
+                        <ResizableHandle withHandle className="!pointer-events-auto bg-[#545454] hover:bg-emerald-500 w-0.5 z-50" />
                         {FileTreePanel}
                     </>
                 ) : (
                     <>
                         {FileTreePanel}
-                        <ResizableHandle withHandle />
+                        <ResizableHandle withHandle className="!pointer-events-auto bg-[#545454] hover:bg-emerald-500 w-0.5 z-50" />
                         {EditorPanelComponent}
                     </>
                 )}

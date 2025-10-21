@@ -11,8 +11,29 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
 
   return (
     <div className="flex items-center justify-between h-12 px-4 border-b border-[#2a2a2a] bg-[#1e1e1e]">
+      <div className="text-lg font-medium truncate w-16 text-emerald-400">Synthi</div>
       {/* Left: file actions */}
       <div className="flex items-center gap-2">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 border-[#4b4b4b] bg-[#262626] hover:bg-[#2e2e2e] hover:border-emerald-500 hover:text-emerald-400 text-gray-200 transition-colors"
+            >
+              File
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="min-w-[220px]">
+            <div className="flex flex-col gap-1 text-sm">
+              <button className="text-left hover:underline">New File</button>
+              <button className="text-left hover:underline">Open File</button>
+              <button className="text-left hover:underline">Open Folder</button>
+              <button className="text-left hover:underline">Save</button>
+              <button className="text-left hover:underline">Save As</button>
+            </div>
+          </PopoverContent>
+        </Popover>
         <Popover>
           <PopoverTrigger asChild>
             <Button 
@@ -23,9 +44,8 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
               Edit
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="min-w-[220px]">
-            <div className="text-xs text-muted-foreground mb-2">Edit</div>
-            <div className="flex flex-col gap-1 text-sm">
+          <PopoverContent className="min-w-[220px] bg-[#262626]">
+            <div className="flex flex-col gap-1 text-sm bg-[#262626]">
               <button className="text-left hover:underline">Undo</button>
               <button className="text-left hover:underline">Redo</button>
               <button className="text-left hover:underline">Copy</button>
@@ -45,10 +65,27 @@ export default function TopNav({ title = 'Synthi', onRun, onToggleTerminal }) {
             </Button>
           </PopoverTrigger>
           <PopoverContent className="min-w-[220px]">
-            <div className="text-xs text-muted-foreground mb-2">Selection</div>
             <div className="flex flex-col gap-1 text-sm">
-              <button className="text-left hover:underline">Select all</button>
-              <button className="text-left hover:underline">Expand selection</button>
+              <button className="text-left hover:underline">Select All</button>
+              <button className="text-left hover:underline">Expand Selection</button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 border-[#4b4b4b] bg-[#262626] hover:bg-[#2e2e2e] hover:border-emerald-500 hover:text-emerald-400 text-gray-200 transition-colors"
+            >
+              View
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="min-w-[220px]">
+            <div className="flex flex-col gap-1 text-sm">
+              <button className="text-left hover:underline">Open View...</button>
+              <button className="text-left hover:underline">Appearence</button>
             </div>
           </PopoverContent>
         </Popover>

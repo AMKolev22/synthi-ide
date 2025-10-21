@@ -17,8 +17,22 @@ const FileItem = ({
     handleKeyDown,
     handleBlur
 }) => {
+    // Helper function to check if this folder contains the active file
+    const containsActiveFile = (folder, activeFilePath) => {
+        if (!folder.isFolder || !folder.children || !activeFilePath) return false;
+        
+        for (const child of folder.children) {
+            if (child.path === activeFilePath) return true;
+            if (child.isFolder && containsActiveFile(child, activeFilePath)) return true;
+        }
+        return false;
+    };
+    
+    // Determine initial state based on whether this folder contains the active file
+    const shouldAutoExpand = item.isFolder && activeFile && containsActiveFile(item, activeFile.path);
+    
     // Retain local state for folder expansion
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(shouldAutoExpand);
     
     // Local Ref for contextual input focusing
     const localInputRef = useRef(null); 
@@ -32,6 +46,13 @@ const FileItem = ({
     const isParentForCreation = isCreating && item.isFolder && target && item.path === target.path;
     const isCreatingFolder = mode === 'create-folder';
 
+    // Auto-expand folders that contain the active file
+    useEffect(() => {
+        if (item.isFolder && activeFile && containsActiveFile(item, activeFile.path)) {
+            setIsOpen(true);
+        }
+    }, [activeFile]);
+    
     // Focus management for the decentralized input
     useEffect(() => {
         if ((isTargetForRename || isParentForCreation) && localInputRef.current) {
